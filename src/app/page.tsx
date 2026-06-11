@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 
+// ===== TYPES =====
 interface Message {
   id?: string;
   text: string;
@@ -14,14 +15,86 @@ interface Message {
   createdAt: string;
 }
 
+interface UserSettings {
+  aiModel: string;
+  customApiKey: string;
+  customModelName: string;
+  theme: 'dark' | 'light';
+}
+
 interface UserProfile {
   uid: string;
   displayName: string;
   role: 'parsa' | 'melika';
   avatar: string;
   email: string;
+  createdAt?: string;
+  settings?: UserSettings;
 }
 
+// ===== AI MODELS =====
+const AI_MODELS = [
+  { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', desc: 'سریع و اقتصادی' },
+  { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', desc: 'قدرتمند و دقیق' },
+  { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', desc: 'نسخه قبلی سریع' },
+  { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', desc: 'پایدار و مطمئن' },
+  { id: 'custom', name: 'مدل دلخواه ✏️', desc: 'مدل خودت رو وارد کن' },
+];
+
+const AVATARS = ['👨‍💻', '👩‍🎨', '🧸', '🌸', '☕', '🪐', '🍀', '✨', '🦋', '🌙', '🔥', '💎'];
+
+// ===== TOAST COMPONENT =====
+interface Toast {
+  id: number;
+  message: string;
+  type: 'success' | 'error' | 'info';
+  exiting?: boolean;
+}
+
+function ToastContainer({ toasts }: { toasts: Toast[] }) {
+  return (
+    <div className="toast-container">
+      {toasts.map((t) => (
+        <div key={t.id} className={`toast toast-${t.type} ${t.exiting ? 'toast-exit' : ''}`}>
+          <span>{t.type === 'success' ? '✅' : t.type === 'error' ? '❌' : 'ℹ️'}</span>
+          <span>{t.message}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ===== CONFIRM DIALOG =====
+function ConfirmDialog({ 
+  title, message, onConfirm, onCancel, confirmText = 'تأیید', cancelText = 'انصراف', danger = false 
+}: {
+  title: string;
+  message: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+  confirmText?: string;
+  cancelText?: string;
+  danger?: boolean;
+}) {
+  return (
+    <div className="confirm-overlay" onClick={onCancel}>
+      <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
+        <h3>{title}</h3>
+        <p>{message}</p>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button onClick={onConfirm} className={`btn ${danger ? 'btn-danger' : 'btn-primary'}`} style={{ flex: 1 }}>
+            {confirmText}
+          </button>
+          <button onClick={onCancel} className="btn btn-secondary" style={{ flex: 1 }}>
+            {cancelText}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ===== MAIN COMPONENT =====
 export default function ChatPage() {
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -33,17 +106,69 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [aiTyping, setAiTyping] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
+  const [activeTab, setActiveTab] = useState<'chat' | 'settings'>('chat');
+  const [showScrollBtn, setShowScrollBtn] = useState(false);
+  const [copiedMsgId, setCopiedMsgId] = useState<string | null>(null);
   
-  // Profile edit states
+  // Advanced Features states
+  const [selectedMood, setSelectedMood] = useState<string>('');
+  const MOODS = [
+    { emoji: '😊', label: 'آرام', value: 'آرام و خوشحال' },
+    { emoji: '😔', label: 'ناراحت', value: 'ناراحت و غمگین' },
+    { emoji: '😠', label: 'عصبانی', value: 'عصبانی و کلافه' },
+    { emoji: '🤔', label: 'گیج', value: 'سردرگم' },
+    { emoji: '❤️', label: 'عاشقانه', value: 'عاشقانه' }
+  ];
+  
+  // Settings states
   const [editName, setEditName] = useState('');
   const [editAvatar, setEditAvatar] = useState('👨‍💻');
+  const [selectedModel, setSelectedModel] = useState('gemini-2.5-flash');
+  const [customModelName, setCustomModelName] = useState('');
+  const [customApiKey, setCustomApiKey] = useState('');
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [showApiKey, setShowApiKey] = useState(false);
+  
+  // Dialog states
+  const [confirmDialog, setConfirmDialog] = useState<{ show: boolean; type: string }>({ show: false, type: '' });
+  
+  // Toast state
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  const toastIdRef = useRef(0);
   
   const router = useRouter();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
   const pollingIntervalRef = useRef<any>(null);
 
-  // Monitor auth state
+  // ===== TOAST HELPER =====
+  const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    const id = ++toastIdRef.current;
+    setToasts((prev) => [...prev, { id, message, type }]);
+    
+    setTimeout(() => {
+      setToasts((prev) => prev.map((t) => t.id === id ? { ...t, exiting: true } : t));
+      setTimeout(() => {
+        setToasts((prev) => prev.filter((t) => t.id !== id));
+      }, 300);
+    }, 3000);
+  }, []);
+
+  // ===== THEME =====
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('moshaver-theme', theme);
+  }, [theme]);
+
+  // Load theme from localStorage on mount
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('moshaver-theme') as 'dark' | 'light' | null;
+    if (savedTheme) {
+      setTheme(savedTheme);
+    }
+  }, []);
+
+  // ===== AUTH =====
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
@@ -51,7 +176,6 @@ export default function ChatPage() {
         setError('');
         
         try {
-          // Load User Profile via Server-side Proxy API
           const res = await fetch(`/api/user?uid=${firebaseUser.uid}`);
           
           if (res.ok) {
@@ -59,13 +183,22 @@ export default function ChatPage() {
             setProfile(profileData);
             setEditName(profileData.displayName);
             setEditAvatar(profileData.avatar);
+            
+            // بارگذاری تنظیمات
+            if (profileData.settings) {
+              setSelectedModel(profileData.settings.aiModel || 'gemini-2.5-flash');
+              setCustomApiKey(profileData.settings.customApiKey || '');
+              setCustomModelName(profileData.settings.customModelName || '');
+              if (profileData.settings.theme) {
+                setTheme(profileData.settings.theme);
+              }
+            }
           } else {
-            // Profile doesn't exist or other error
             router.push('/login');
           }
         } catch (err: any) {
           console.error("Profile load error:", err);
-          setError('خطا در بارگذاری اطلاعات پروفایل از سرور. لطفاً دوباره صفحه را رفرش کنید.');
+          setError('خطا در بارگذاری اطلاعات. لطفاً صفحه را رفرش کنید.');
         }
       } else {
         router.push('/login');
@@ -76,8 +209,8 @@ export default function ChatPage() {
     return () => unsubscribe();
   }, [router]);
 
-  // Function to fetch messages via Server-side proxy
-  const fetchMessages = async () => {
+  // ===== FETCH MESSAGES =====
+  const fetchMessages = useCallback(async () => {
     if (!user || !profile) return;
     
     try {
@@ -85,10 +218,9 @@ export default function ChatPage() {
       if (res.ok) {
         const msgs = await res.json() as Message[];
         
-        // Only update state if message count or last message changed to avoid unnecessary re-renders
         setMessages((prev) => {
-          if (prev.length !== msgs.length || (prev.length > 0 && prev[prev.length - 1].text !== msgs[msgs.length - 1].text)) {
-            scrollToBottom();
+          if (prev.length !== msgs.length || 
+              (prev.length > 0 && msgs.length > 0 && prev[prev.length - 1].text !== msgs[msgs.length - 1].text)) {
             return msgs;
           }
           return prev;
@@ -97,16 +229,13 @@ export default function ChatPage() {
     } catch (err) {
       console.error("Error fetching messages:", err);
     }
-  };
+  }, [user, profile, chatType]);
 
-  // Poll messages every 3 seconds to ensure real-time response bypassing client-side gRPC/WS blocks
+  // ===== POLLING =====
   useEffect(() => {
     if (!user || !profile) return;
 
-    // Fetch immediately on mount/chatType change
     fetchMessages();
-
-    // Start polling interval
     pollingIntervalRef.current = setInterval(fetchMessages, 3000);
 
     return () => {
@@ -114,15 +243,29 @@ export default function ChatPage() {
         clearInterval(pollingIntervalRef.current);
       }
     };
-  }, [user, profile, chatType]);
+  }, [user, profile, chatType, fetchMessages]);
 
-  // Scroll chat window to bottom
+  // ===== AUTO SCROLL =====
+  useEffect(() => {
+    if (messages.length > 0) {
+      scrollToBottom();
+    }
+  }, [messages]);
+
   const scrollToBottom = () => {
     setTimeout(() => {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, 100);
   };
 
+  // ===== SCROLL DETECTION =====
+  const handleScroll = () => {
+    if (!chatContainerRef.current) return;
+    const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
+    setShowScrollBtn(scrollHeight - scrollTop - clientHeight > 200);
+  };
+
+  // ===== SEND MESSAGE =====
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputText.trim() || !user || !profile) return;
@@ -132,56 +275,53 @@ export default function ChatPage() {
     setAiTyping(true);
 
     const messageData = {
-      chatType: chatType,
+      chatType,
       uid: user.uid,
       text: textToSend,
       senderId: user.uid,
       senderName: profile.displayName,
       senderRole: profile.role,
+      mood: selectedMood || undefined,
     };
 
+    // Reset mood after sending
+    setSelectedMood('');
+
     try {
-      // 1. Save user message via Server-side Proxy API
       const saveUserRes = await fetch('/api/messages', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(messageData),
       });
 
-      if (!saveUserRes.ok) {
-        throw new Error('خطا در ارسال پیام به سرور.');
-      }
+      if (!saveUserRes.ok) throw new Error('خطا در ارسال پیام.');
 
-      // Sync UI messages immediately
       await fetchMessages();
 
-      // 2. Fetch recent messages history for Gemini API context
       const localContext = [...messages, { ...messageData, createdAt: new Date().toISOString() }];
 
-      // 3. Request AI response from server-side Route handler
+      // ارسال مدل و API Key سفارشی به سرور
+      const actualModel = selectedModel === 'custom' ? customModelName : selectedModel;
+
       const res = await fetch('/api/chat', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           messages: localContext,
-          chatType: chatType,
+          chatType,
           userDisplayName: profile.displayName,
+          customModel: actualModel,
+          customApiKey: customApiKey || undefined,
+          currentMood: messageData.mood,
         }),
       });
 
-      if (!res.ok) {
-        throw new Error('مشکلی در سرور پاسخ‌دهی هوش مصنوعی پیش آمد.');
-      }
+      if (!res.ok) throw new Error('مشکلی در پاسخ‌دهی هوش مصنوعی پیش آمد.');
 
       const data = await res.json();
       
-      // 4. Save AI message via Server-side Proxy API
       const aiMessageData = {
-        chatType: chatType,
+        chatType,
         uid: user.uid,
         text: data.text,
         senderId: 'ai',
@@ -191,22 +331,19 @@ export default function ChatPage() {
       
       await fetch('/api/messages', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(aiMessageData),
       });
 
-      // Sync UI messages again
       await fetchMessages();
-
     } catch (err: any) {
       console.error(err);
-      // Save error alert message via Server-side Proxy API
+      showToast(err.message || 'خطا در ارسال پیام', 'error');
+      
       const errorMessage = {
-        chatType: chatType,
+        chatType,
         uid: user.uid,
-        text: `در حال حاضر ارتباط با مشاور هوش مصنوعی با خطا مواجه شد (${err.message}). لطفاً مجدداً تلاش کنید.`,
+        text: `خطا: ${err.message}`,
         senderId: 'ai',
         senderName: 'سیستم',
         senderRole: 'system',
@@ -214,68 +351,124 @@ export default function ChatPage() {
       
       await fetch('/api/messages', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(errorMessage),
       });
       await fetchMessages();
     } finally {
       setAiTyping(false);
-      scrollToBottom();
     }
   };
 
-  const handleUpdateProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) return;
+  // ===== COPY MESSAGE =====
+  const handleCopyMessage = async (msgId: string | undefined, text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedMsgId(msgId || null);
+      showToast('پیام کپی شد', 'success');
+      setTimeout(() => setCopiedMsgId(null), 2000);
+    } catch {
+      showToast('خطا در کپی پیام', 'error');
+    }
+  };
+
+  // ===== FORMAT TIME =====
+  const formatTime = (dateStr: string) => {
+    try {
+      const date = new Date(dateStr);
+      return new Intl.DateTimeFormat('fa-IR', {
+        hour: '2-digit',
+        minute: '2-digit',
+      }).format(date);
+    } catch {
+      return '';
+    }
+  };
+
+  // ===== SAVE SETTINGS =====
+  const handleSaveSettings = async () => {
+    if (!user || !profile) return;
     
     try {
-      // Update profile via Server-side Proxy API
+      const newSettings: UserSettings = {
+        aiModel: selectedModel,
+        customApiKey,
+        customModelName,
+        theme,
+      };
+
       const res = await fetch('/api/user', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           uid: user.uid,
-          displayName: editName.trim(),
+          displayName: editName.trim() || profile.displayName,
           avatar: editAvatar,
-          isUpdate: true
-        })
+          settings: newSettings,
+          isUpdate: true,
+        }),
       });
 
-      if (!res.ok) {
-        throw new Error('خطا در به‌روزرسانی سرور');
-      }
+      if (!res.ok) throw new Error('خطا در ذخیره تنظیمات');
       
       setProfile((prev: any) => ({
         ...prev,
-        displayName: editName.trim(),
+        displayName: editName.trim() || prev.displayName,
         avatar: editAvatar,
+        settings: newSettings,
       }));
       
-      setShowSettings(false);
+      showToast('تنظیمات با موفقیت ذخیره شد ✅', 'success');
     } catch (err: any) {
-      console.error('Error updating profile:', err);
-      alert(`خطا در به‌روزرسانی اطلاعات (${err.message})`);
+      showToast(err.message || 'خطا در ذخیره تنظیمات', 'error');
     }
   };
 
-  const handleLogout = async () => {
-    if (pollingIntervalRef.current) {
-      clearInterval(pollingIntervalRef.current);
+  // ===== CLEAR CHAT =====
+  const handleClearChat = async () => {
+    if (!user) return;
+    setConfirmDialog({ show: false, type: '' });
+    
+    try {
+      const res = await fetch('/api/chat/clear', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chatType, uid: user.uid }),
+      });
+
+      if (!res.ok) throw new Error('خطا در پاک کردن چت');
+      
+      setMessages([]);
+      showToast('تاریخچه چت پاک شد 🗑️', 'success');
+    } catch (err: any) {
+      showToast(err.message || 'خطا در پاک کردن چت', 'error');
     }
+  };
+
+  // ===== LOGOUT =====
+  const handleLogout = async () => {
+    setConfirmDialog({ show: false, type: '' });
+    if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
     await signOut(auth);
     router.push('/login');
   };
 
+  // ===== CHAR COUNTER =====
+  const getCharCounterClass = () => {
+    const len = inputText.length;
+    if (len > 1500) return 'char-counter active danger';
+    if (len > 1000) return 'char-counter active warning';
+    if (len > 0) return 'char-counter active';
+    return 'char-counter';
+  };
+
+  // ===== LOADING =====
   if (loading) {
     return (
       <div className="mobile-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ textAlign: 'center' }}>
-          <span style={{ fontSize: '48px', animation: 'pulse 1.5s infinite' }}>🕯️</span>
-          <p style={{ marginTop: '16px', color: 'var(--text-muted)' }}>در حال بارگذاری اطلاعات...</p>
+        <div style={{ textAlign: 'center' }} className="animate-fade-in">
+          <div className="loading-spinner" style={{ margin: '0 auto 16px' }}></div>
+          <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>در حال بارگذاری...</p>
         </div>
       </div>
     );
@@ -283,55 +476,97 @@ export default function ChatPage() {
 
   if (!profile) return null;
 
+  // ===== RENDER =====
   return (
     <div className="mobile-container">
+      <ToastContainer toasts={toasts} />
       
+      {/* CONFIRM DIALOGS */}
+      {confirmDialog.show && confirmDialog.type === 'clear' && (
+        <ConfirmDialog
+          title="🗑️ پاک کردن تاریخچه"
+          message={`آیا مطمئنید که می‌خواهید تمام پیام‌های ${chatType === 'shared' ? 'جلسه دو نفره' : 'چت خصوصی'} را پاک کنید؟ این عمل قابل بازگشت نیست.`}
+          onConfirm={handleClearChat}
+          onCancel={() => setConfirmDialog({ show: false, type: '' })}
+          confirmText="بله، پاک کن"
+          danger
+        />
+      )}
+      {confirmDialog.show && confirmDialog.type === 'logout' && (
+        <ConfirmDialog
+          title="🚪 خروج از حساب"
+          message="آیا می‌خواهید از حساب کاربری خود خارج شوید؟"
+          onConfirm={handleLogout}
+          onCancel={() => setConfirmDialog({ show: false, type: '' })}
+          confirmText="خروج"
+          danger
+        />
+      )}
+
       {/* HEADER */}
       <header className="chat-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span style={{ fontSize: '24px' }}>{profile.avatar}</span>
+          <div style={{ 
+            width: '40px', height: '40px', borderRadius: '14px', 
+            background: 'var(--primary-glow)', 
+            display: 'flex', alignItems: 'center', justifyContent: 'center', 
+            fontSize: '22px',
+            border: '1.5px solid var(--card-border)'
+          }}>
+            {profile.avatar}
+          </div>
           <div>
-            <h2 style={{ fontSize: '16px', fontWeight: 'bold' }}>{profile.displayName}</h2>
-            <span style={{ fontSize: '11px', color: '#10b981' }}>آنلاین</span>
+            <h2 style={{ fontSize: '15px', fontWeight: '700' }}>{profile.displayName}</h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <span style={{ 
+                width: '6px', height: '6px', borderRadius: '50%', 
+                background: '#34d399', display: 'inline-block',
+                boxShadow: '0 0 6px rgba(52, 211, 153, 0.5)'
+              }}></span>
+              <span style={{ fontSize: '11px', color: '#34d399' }}>آنلاین</span>
+            </div>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
+        <div style={{ display: 'flex', gap: '6px' }}>
           <button 
-            onClick={() => setShowSettings(!showSettings)} 
-            className="btn btn-secondary" 
-            style={{ padding: '8px 12px', fontSize: '13px', width: 'auto' }}
+            onClick={() => router.push('/insights')} 
+            className="btn btn-secondary btn-icon"
+            title="داشبورد تحلیل رابطه"
           >
-            ⚙️ تنظیمات
+            📊
           </button>
           <button 
-            onClick={handleLogout} 
-            className="btn btn-secondary" 
-            style={{ padding: '8px 12px', fontSize: '13px', width: 'auto', color: '#f87171' }}
+            onClick={() => setActiveTab(activeTab === 'settings' ? 'chat' : 'settings')} 
+            className="btn btn-secondary btn-icon"
+            title="تنظیمات"
+            style={{ 
+              background: activeTab === 'settings' ? 'var(--primary-glow)' : undefined,
+              borderColor: activeTab === 'settings' ? 'var(--primary-color)' : undefined,
+            }}
           >
-            خروج
+            {activeTab === 'settings' ? '💬' : '⚙️'}
+          </button>
+          <button 
+            onClick={() => setConfirmDialog({ show: true, type: 'logout' })}
+            className="btn btn-secondary btn-icon"
+            title="خروج"
+            style={{ color: 'var(--danger-color)' }}
+          >
+            🚪
           </button>
         </div>
       </header>
 
-      {error && (
-        <div style={{ 
-          background: 'rgba(239, 68, 68, 0.15)', 
-          border: '1px solid rgba(239, 68, 68, 0.3)', 
-          color: '#f87171', 
-          padding: '10px', 
-          fontSize: '12px',
-          textAlign: 'center' 
-        }}>
-          {error}
-        </div>
-      )}
+      {error && <div className="error-banner">{error}</div>}
 
-      {/* SETTINGS MODAL / PANEL */}
-      {showSettings ? (
-        <div className="glass-panel animate-fade-in" style={{ flex: 1, margin: '20px', display: 'flex', flexDirection: 'column', gap: '16px', overflowY: 'auto' }}>
-          <h2 style={{ fontSize: '18px', fontWeight: 'bold', borderBottom: '1px solid var(--card-border)', paddingBottom: '8px' }}>تنظیمات پروفایل</h2>
+      {/* ===== SETTINGS TAB ===== */}
+      {activeTab === 'settings' ? (
+        <div className="settings-container">
           
-          <form onSubmit={handleUpdateProfile} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {/* پروفایل */}
+          <div className="settings-section">
+            <div className="settings-section-title">👤 پروفایل</div>
+            
             <div className="input-group">
               <label className="input-label">نام نمایشی</label>
               <input 
@@ -339,14 +574,14 @@ export default function ChatPage() {
                 className="input-field" 
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
-                required
+                placeholder="نام شما..."
               />
             </div>
 
-            <div className="input-group">
-              <label className="input-label">انتخاب آواتار</label>
+            <div className="input-group" style={{ marginBottom: '0' }}>
+              <label className="input-label">آواتار</label>
               <div className="profile-avatar-select">
-                {['👨‍💻', '👩‍🎨', '🧸', '🌸', '☕', '🪐', '🍀', '✨'].map((emoji) => (
+                {AVATARS.map((emoji) => (
                   <div 
                     key={emoji}
                     className={`avatar-option ${editAvatar === emoji ? 'selected' : ''}`}
@@ -357,25 +592,143 @@ export default function ChatPage() {
                 ))}
               </div>
             </div>
+          </div>
 
-            <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-              <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>ذخیره تغییرات</button>
-              <button 
-                type="button" 
-                onClick={() => setShowSettings(false)} 
-                className="btn btn-secondary" 
-                style={{ flex: 1 }}
-              >
-                انصراف
-              </button>
+          {/* مدل هوش مصنوعی */}
+          <div className="settings-section">
+            <div className="settings-section-title">🤖 مدل هوش مصنوعی</div>
+            
+            <div className="model-grid">
+              {AI_MODELS.map((model) => (
+                <div 
+                  key={model.id}
+                  className={`model-option ${selectedModel === model.id ? 'selected' : ''}`}
+                  onClick={() => setSelectedModel(model.id)}
+                >
+                  <span className="model-name">{model.name}</span>
+                  <span className="model-desc">{model.desc}</span>
+                </div>
+              ))}
             </div>
-          </form>
+
+            {selectedModel === 'custom' && (
+              <div className="input-group animate-fade-in" style={{ marginTop: '12px' }}>
+                <label className="input-label">نام مدل دلخواه</label>
+                <input 
+                  type="text"
+                  className="input-field"
+                  placeholder="مثال: gemini-2.0-flash-lite"
+                  value={customModelName}
+                  onChange={(e) => setCustomModelName(e.target.value)}
+                  dir="ltr"
+                  style={{ textAlign: 'left', fontFamily: 'monospace, Vazirmatn' }}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* کلید API */}
+          <div className="settings-section">
+            <div className="settings-section-title">🔑 کلید API اختصاصی</div>
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '10px', lineHeight: '1.7' }}>
+              اگر کلید API شخصی دارید، اینجا وارد کنید. در غیر اینصورت از کلید پیش‌فرض استفاده می‌شود.
+            </p>
+            
+            <div className="input-group" style={{ marginBottom: '0' }}>
+              <div style={{ position: 'relative' }}>
+                <input 
+                  type={showApiKey ? 'text' : 'password'}
+                  className="input-field"
+                  placeholder="AIza..."
+                  value={customApiKey}
+                  onChange={(e) => setCustomApiKey(e.target.value)}
+                  dir="ltr"
+                  style={{ textAlign: 'left', fontFamily: 'monospace, Vazirmatn', paddingLeft: '44px' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowApiKey(!showApiKey)}
+                  style={{
+                    position: 'absolute',
+                    left: '8px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: '16px',
+                    padding: '4px',
+                  }}
+                >
+                  {showApiKey ? '🙈' : '👁️'}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* ظاهر */}
+          <div className="settings-section">
+            <div className="settings-section-title">🎨 ظاهر برنامه</div>
+            
+            <div className="settings-row">
+              <span className="settings-row-label">حالت تاریک</span>
+              <label className="toggle-switch">
+                <input 
+                  type="checkbox" 
+                  checked={theme === 'dark'}
+                  onChange={(e) => setTheme(e.target.checked ? 'dark' : 'light')}
+                />
+                <span className="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+
+          {/* اطلاعات حساب */}
+          <div className="settings-section">
+            <div className="settings-section-title">📋 اطلاعات حساب</div>
+            
+            <div className="settings-row">
+              <span className="settings-row-label">ایمیل</span>
+              <span className="settings-row-value">{profile.email}</span>
+            </div>
+            <div className="settings-row">
+              <span className="settings-row-label">نقش</span>
+              <span className="settings-row-value">{profile.role === 'parsa' ? 'پارسا 👨‍💻' : 'ملیکا 👩‍🎨'}</span>
+            </div>
+            <div className="settings-row">
+              <span className="settings-row-label">مدل فعال</span>
+              <span className="settings-row-value" style={{ direction: 'ltr' }}>
+                {selectedModel === 'custom' ? customModelName || '—' : selectedModel}
+              </span>
+            </div>
+            {profile.createdAt && (
+              <div className="settings-row">
+                <span className="settings-row-label">تاریخ عضویت</span>
+                <span className="settings-row-value">
+                  {new Intl.DateTimeFormat('fa-IR', { year: 'numeric', month: 'long', day: 'numeric' }).format(new Date(profile.createdAt))}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* عملیات‌ها */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', paddingBottom: '20px' }}>
+            <button onClick={handleSaveSettings} className="btn btn-primary">
+              💾 ذخیره تمام تنظیمات
+            </button>
+            <button 
+              onClick={() => setConfirmDialog({ show: true, type: 'clear' })} 
+              className="btn btn-danger"
+            >
+              🗑️ پاک کردن تاریخچه چت فعلی
+            </button>
+          </div>
         </div>
       ) : (
-        /* CHAT INTERFACE */
+        /* ===== CHAT TAB ===== */
         <>
-          {/* ROOM SELECTION TABS */}
-          <div style={{ padding: '16px 16px 0 16px' }}>
+          {/* ROOM TABS */}
+          <div style={{ padding: '12px 16px 0 16px' }}>
             <div className="rooms-tabs">
               <div 
                 className={`room-tab ${chatType === 'shared' ? 'active' : ''}`}
@@ -392,68 +745,70 @@ export default function ChatPage() {
             </div>
           </div>
 
-          {/* MESSAGES WINDOW */}
-          <div className="chat-messages">
+          {/* MESSAGES */}
+          <div 
+            className="chat-messages" 
+            ref={chatContainerRef}
+            onScroll={handleScroll}
+          >
             {messages.length === 0 ? (
-              <div style={{ 
-                flex: 1, 
-                display: 'flex', 
-                flexDirection: 'column', 
-                alignItems: 'center', 
-                justifyContent: 'center',
-                color: 'var(--text-muted)',
-                textAlign: 'center',
-                padding: '20px',
-                gap: '12px'
-              }}>
-                <span style={{ fontSize: '32px' }}>💬</span>
-                <p style={{ fontSize: '14px', lineHeight: '1.6' }}>
+              <div className="empty-state">
+                <span className="empty-state-icon">
+                  {chatType === 'shared' ? '💬' : '🔒'}
+                </span>
+                <p className="empty-state-text">
                   {chatType === 'shared' 
-                    ? 'هیچ پیامی در جلسه دونفره وجود ندارد. برای شروع جلسه با مشاور رابطه پیامی بنویسید.'
-                    : 'این فضا کاملاً خصوصی است. پارتنر شما پیام‌های این بخش را نمی‌بیند. می‌توانید سوال یا دغدغه خصوصی خود را بنویسید.'}
+                    ? 'هنوز پیامی در جلسه دونفره نیست. برای شروع مشاوره، پیامی بنویسید.'
+                    : 'این فضا کاملاً خصوصی است. پارتنر شما پیام‌های این بخش را نمی‌بیند.'}
                 </p>
               </div>
             ) : (
               messages.map((msg, index) => {
                 const isAi = msg.senderId === 'ai';
-                const senderName = msg.senderName;
                 
-                // Style wrapper based on sender
                 let wrapperClass = 'message-wrapper';
-                
                 if (isAi) {
                   wrapperClass += ' ai';
                 } else {
                   wrapperClass += ' user';
-                  if (msg.senderRole === 'parsa') {
-                    wrapperClass += ' parsa';
-                  } else if (msg.senderRole === 'melika') {
-                    wrapperClass += ' melika';
-                  }
+                  if (msg.senderRole === 'parsa') wrapperClass += ' parsa';
+                  else if (msg.senderRole === 'melika') wrapperClass += ' melika';
                 }
 
                 return (
                   <div key={msg.id || index} className={wrapperClass}>
                     <span className="message-sender">
-                      {isAi ? '🧙‍♂️ ' : ''}{senderName} 
+                      {isAi ? '🧙‍♂️ ' : ''}{msg.senderName}
                       {!isAi && ` (${msg.senderRole === 'parsa' ? 'پارسا' : 'ملیکا'})`}
                     </span>
                     <div className="message-bubble">
-                      <p style={{ whiteSpace: 'pre-wrap' }}>{msg.text}</p>
+                      <div className="message-actions">
+                        <button 
+                          className="copy-btn" 
+                          onClick={() => handleCopyMessage(msg.id, msg.text)}
+                          title="کپی پیام"
+                        >
+                          {copiedMsgId === msg.id ? '✓' : '📋'}
+                        </button>
+                      </div>
+                      <p style={{ whiteSpace: 'pre-wrap', margin: 0 }}>{msg.text}</p>
                     </div>
+                    {msg.createdAt && (
+                      <span className="message-time">{formatTime(msg.createdAt)}</span>
+                    )}
                   </div>
                 );
               })
             )}
 
-            {/* AI TYPING INDICATOR */}
+            {/* TYPING INDICATOR */}
             {aiTyping && (
-              <div className="message-wrapper ai" style={{ alignSelf: 'flex-start' }}>
-                <span className="message-sender">مشاور همراه</span>
+              <div className="message-wrapper ai">
+                <span className="message-sender">🧙‍♂️ مشاور همراه</span>
                 <div className="message-bubble" style={{ display: 'flex', gap: '6px', alignItems: 'center', padding: '14px 20px' }}>
-                  <span style={{ width: '8px', height: '8px', background: 'var(--text-muted)', borderRadius: '50%', animation: 'pulse 1s infinite alternate' }}></span>
-                  <span style={{ width: '8px', height: '8px', background: 'var(--text-muted)', borderRadius: '50%', animation: 'pulse 1s infinite alternate 0.2s' }}></span>
-                  <span style={{ width: '8px', height: '8px', background: 'var(--text-muted)', borderRadius: '50%', animation: 'pulse 1s infinite alternate 0.4s' }}></span>
+                  <span className="typing-dot"></span>
+                  <span className="typing-dot"></span>
+                  <span className="typing-dot"></span>
                 </div>
               </div>
             )}
@@ -461,36 +816,79 @@ export default function ChatPage() {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* INPUT BAR */}
-          <form onSubmit={handleSendMessage} className="chat-input-area">
-            <input 
-              type="text" 
-              className="input-field" 
-              placeholder={chatType === 'shared' ? 'پیامی برای جلسه بنویسید...' : 'به صورت خصوصی با مشاور صحبت کنید...'}
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              disabled={aiTyping}
-              style={{ flex: 1, borderRadius: '24px', padding: '12px 20px', fontSize: '15px' }}
-            />
-            <button 
-              type="submit" 
-              disabled={!inputText.trim() || aiTyping}
-              className="btn btn-primary"
-              style={{ 
-                width: '44px', 
-                height: '44px', 
-                borderRadius: '50%', 
-                padding: '0', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center',
-                flexShrink: 0,
-                opacity: (!inputText.trim() || aiTyping) ? 0.6 : 1
-              }}
-            >
-              🚀
+          {/* SCROLL TO BOTTOM */}
+          {showScrollBtn && (
+            <button className="scroll-to-bottom" onClick={scrollToBottom}>
+              ↓
             </button>
-          </form>
+          )}
+
+          {/* INPUT AREA */}
+          <div>
+            {inputText.length > 0 && (
+              <div className={getCharCounterClass()} style={{ padding: '0 20px', marginBottom: '2px' }}>
+                {inputText.length} کاراکتر
+              </div>
+            )}
+            <form onSubmit={handleSendMessage} className="chat-input-area" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
+              
+              {/* Mood Selector */}
+              <div style={{ display: 'flex', gap: '8px', padding: '0 8px', overflowX: 'auto', paddingBottom: '8px' }}>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)', alignSelf: 'center', whiteSpace: 'nowrap' }}>حس الانم:</span>
+                {MOODS.map(m => (
+                  <button
+                    key={m.label}
+                    type="button"
+                    onClick={() => setSelectedMood(selectedMood === m.value ? '' : m.value)}
+                    style={{
+                      background: selectedMood === m.value ? 'var(--primary-glow)' : 'transparent',
+                      border: `1px solid ${selectedMood === m.value ? 'var(--primary-color)' : 'var(--card-border)'}`,
+                      borderRadius: '12px',
+                      padding: '4px 8px',
+                      fontSize: '12px',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                      transition: 'all 0.2s',
+                    }}
+                  >
+                    {m.emoji} {m.label}
+                  </button>
+                ))}
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end', width: '100%' }}>
+                <input 
+                  type="text" 
+                  className="input-field" 
+                  placeholder={chatType === 'shared' ? 'پیامی برای جلسه بنویسید...' : 'به صورت خصوصی صحبت کنید...'}
+                  value={inputText}
+                  onChange={(e) => setInputText(e.target.value)}
+                  disabled={aiTyping}
+                  style={{ flex: 1, borderRadius: '22px', padding: '11px 18px', fontSize: '14.5px' }}
+                />
+                <button 
+                  type="submit" 
+                  disabled={!inputText.trim() || aiTyping}
+                  className="btn btn-primary"
+                  style={{ 
+                    width: '44px', 
+                    height: '44px', 
+                    borderRadius: '50%', 
+                    padding: '0', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    fontSize: '18px',
+                  }}
+                >
+                  {aiTyping ? (
+                    <span style={{ animation: 'spin 1s linear infinite', display: 'inline-block' }}>⏳</span>
+                  ) : '🚀'}
+                </button>
+              </div>
+            </form>
+          </div>
         </>
       )}
     </div>

@@ -27,7 +27,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { uid, displayName, role, avatar, email, isUpdate } = body;
+    const { uid, displayName, role, avatar, email, isUpdate, settings } = body;
 
     if (!uid) {
       return NextResponse.json({ error: 'UID is required' }, { status: 400 });
@@ -36,14 +36,30 @@ export async function POST(request: Request) {
     const userDocRef = adminDb.collection('users').doc(uid);
 
     if (isUpdate) {
-      await userDocRef.update({ displayName, avatar });
+      // ساخت آبجکت آپدیت - فقط فیلدهای ارسال‌شده
+      const updateData: any = {};
+      
+      if (displayName !== undefined) updateData.displayName = displayName;
+      if (avatar !== undefined) updateData.avatar = avatar;
+      if (settings !== undefined) updateData.settings = settings;
+      
+      updateData.updatedAt = new Date().toISOString();
+      
+      await userDocRef.update(updateData);
     } else {
+      // ایجاد پروفایل جدید
       await userDocRef.set({
         uid,
         email,
         displayName,
         role,
         avatar,
+        settings: {
+          aiModel: 'gemini-2.5-flash',
+          customApiKey: '',
+          customModelName: '',
+          theme: 'dark',
+        },
         createdAt: new Date().toISOString(),
       });
     }

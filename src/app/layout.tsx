@@ -1,9 +1,18 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
 
 export const metadata: Metadata = {
   title: "مشاور همراه - پارسا و ملیکا",
-  description: "وب‌اپلیکیشن چت‌بات مشاور هوشمند رابطه مخصوص پارسا و ملیکا",
+  description: "وب‌اپلیکیشن مشاور هوشمند رابطه مخصوص پارسا و ملیکا - فضایی امن برای گفتگو و تفاهم",
+  keywords: "مشاور رابطه, هوش مصنوعی, چت‌بات, مشاوره",
+  authors: [{ name: "Moshaver App" }],
 };
 
 export default function RootLayout({
@@ -15,9 +24,13 @@ export default function RootLayout({
     <html
       lang="fa"
       dir="rtl"
-      className="h-full antialiased"
+      suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+      </head>
+      <body>{children}</body>
     </html>
   );
 }
