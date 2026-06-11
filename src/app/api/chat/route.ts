@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
 import { adminDb } from "@/lib/firebase-admin";
+import { checkRateLimit } from "@/utils/rateLimit";
 
 const defaultApiKey = process.env.GEMINI_API_KEY;
 
-// مهندسی پرامپت روانشناختی (گاتمن، ادموندسون، روزنبرگ)
 const BASE_PSYCHOLOGICAL_PROMPT = `
 تو یک زوج‌درمانگر و مشاور روانشناسی در سطح جهانی هستی. هسته تحلیل تو ترکیبی از سه مکتب زیر است:
 ۱. متد گاتمن (John Gottman): تو در کشف "چهار اسب‌سوار" (انتقاد، تحقیر، حالت تدافعی، دیوار کشیدن) مهارت داری. اگر هر یک از این‌ها را در متن دیدی، بلافاصله مداخله ملایم کن و یک "تلاش جبرانی" (Repair Attempt) پیشنهاد بده. همچنین مراقب "غلیان احساسی" (Flooding) باش و در صورت نیاز پیشنهاد یک وقفه (Time-out) بده.
@@ -18,7 +18,14 @@ const BASE_PSYCHOLOGICAL_PROMPT = `
 - همیشه بسیار آرامش‌بخش، همدلانه، صمیمی، و حرفه‌ای باش.
 - پاسخ‌هایت باید ساختاریافته، نسبتاً کوتاه، و کاملاً کاربردی باشند (از سخنرانی پرهیز کن).
 - هرگز یکی را بر دیگری ترجیح نده و قضاوت نکن.
-- به جای گفتن "باید این کار را بکنید"، جملات جایگزین پیشنهاد بده (مثلاً: "پیشنهاد می‌کنم به جای X بگویید Y").
+- به جای گفتن "باید این کار را بکنید"، جملات جایگزین پیشنهاد بده.
+- پاسخ را با **مارکداون** فرمت کن (بولد برای نکات مهم، لیست برای پیشنهادات).
+
+⚠️ هشدار چهار اسب‌سوار: اگر هر یک از الگوهای زیر را در پیام کاربر تشخیص دادی، ابتدا به زبان ساده و محبت‌آمیز هشدار بده:
+- **انتقاد (Criticism)**: "تو همیشه..." یا "تو هیچوقت..."
+- **تحقیر (Contempt)**: تمسخر، طعنه، چشم چرخاندن
+- **حالت تدافعی (Defensiveness)**: بهانه آوردن، مقصر دانستن طرف مقابل
+- **دیوار کشیدن (Stonewalling)**: سکوت سرد، بی‌تفاوتی
 `;
 
 export async function POST(request: Request) {
@@ -28,9 +35,18 @@ export async function POST(request: Request) {
     const apiKey = customApiKey || defaultApiKey;
     if (!apiKey) {
       return NextResponse.json(
-        { error: "کلید API تنظیم نشده است. لطفاً از بخش تنظیمات وارد کنید." },
+        { error: "کلید API تنظیم نشده است." },
         { status: 500 }
       );
+    }
+
+    // Rate limiting
+    const rl = checkRateLimit(`chat_${userDisplayName}`, 15, 60000);
+    if (!rl.allowed) {
+      return NextResponse.json({
+        text: "⚠️ تعداد درخواست‌های شما بیش از حد مجاز است. لطفاً ۱ دقیقه صبر کنید.",
+        isError: true,
+      });
     }
 
     const ai = new GoogleGenAI({ apiKey });
@@ -39,12 +55,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "فرمت تاریخچه نامعتبر است." }, { status: 400 });
     }
 
-    // واکشی آخرین حافظه بلندمدت (کانتکست رابطه)
+    // واکشی حافظه بلندمدت
     let memoryContext = "";
     try {
-      const todayStr = new Date().toISOString().split('T')[0];
-      
-      // جستجوی آخرین حافظه ثبت شده در 7 روز گذشته (اخیرا)
       const memorySnapshot = await adminDb.collection('relationship_memory')
         .orderBy('date', 'desc')
         .limit(1)
@@ -52,23 +65,21 @@ export async function POST(request: Request) {
         
       if (!memorySnapshot.empty) {
         const memoryData = memorySnapshot.docs[0].data();
-        if (memoryData && memoryData.memory) {
+        if (memoryData?.memory) {
           const m = memoryData.memory;
           memoryContext = `
-[حافظه روانشناختی سیستم از گذشته رابطه - فقط برای اطلاع تو]:
-- خلاصه وضعیت اخیر: ${m.summary || "نامشخص"}
-- نمره سلامت رابطه (از ۱۰۰): ${m.health_score || "نامشخص"}
-- الگوهای رفتاری کشف شده: ${m.behavioral_patterns ? m.behavioral_patterns.join(", ") : "هیچ"}
-- مشکلات حل نشده: ${m.unresolved_issues ? m.unresolved_issues.join(", ") : "هیچ"}
-- نقاط قوت: ${m.positive_highlights ? m.positive_highlights.join(", ") : "هیچ"}
-
-این اطلاعات مربوط به گذشته است. از آن برای درک عمیق‌تر صحبت‌های فعلی استفاده کن اما مستقیماً به کاربر نگو که در حال خواندن حافظه هستی مگه اینکه خودش بپرسه.
+[حافظه روانشناختی سیستم از گذشته رابطه]:
+- خلاصه: ${m.summary || "نامشخص"}
+- نمره سلامت: ${m.health_score || "نامشخص"}/100
+- الگوهای رفتاری: ${m.behavioral_patterns?.join(", ") || "هیچ"}
+- مشکلات حل نشده: ${m.unresolved_issues?.join(", ") || "هیچ"}
+- نقاط قوت: ${m.positive_highlights?.join(", ") || "هیچ"}
+${m.gottman_ratio ? `- نسبت گاتمن: ${m.gottman_ratio.positive}:${m.gottman_ratio.negative}` : ""}
 `;
         }
       }
     } catch (e) {
-      console.error("Error fetching long-term memory:", e);
-      // ادامه بدون حافظه در صورت بروز خطا
+      console.error("Error fetching memory:", e);
     }
 
     const modelName = customModel || "gemini-2.5-flash";
@@ -76,13 +87,10 @@ export async function POST(request: Request) {
 
     const contents = recentMessages.map((msg: any) => {
       const role = msg.senderId === "ai" ? "model" : "user";
-      
-      // تزریق حس و حال فعلی اگر ارسال شده باشد
       let moodText = "";
       if (role === "user" && msg.mood) {
         moodText = `(با حالت احساسی: ${msg.mood}) `;
       }
-      
       const prefix = role === "user" ? `[${msg.senderName || "کاربر"}]: ` : "";
       return {
         role,
@@ -94,15 +102,15 @@ export async function POST(request: Request) {
     
     if (chatType === "shared") {
       contextInstruction += `
-\n[موقعیت فعلی]: تو در یک چت مشترک (جلسه زوج‌درمانی دو نفره) با حضور پارسا و ملیکا هستی.
-تکنیک گاتمن در این موقعیت: اگر هرگونه انتقاد (Criticism) یا تحقیر (Contempt) در پیام‌ها دیدی، قبل از اینکه بحث بالا بگیرد، مداخله کن و جمله کاربر را با فرمول NVC بازنویسی کرده و پیشنهاد بده.
+\n[موقعیت فعلی]: جلسه زوج‌درمانی دو نفره با پارسا و ملیکا.
+تکنیک گاتمن: اگر انتقاد یا تحقیر دیدی، مداخله کن و جمله را با NVC بازنویسی کن.
 `;
     } else {
       const moodContext = currentMood ? `کاربر در حال حاضر احساس "${currentMood}" دارد.` : "";
       contextInstruction += `
-\n[موقعیت فعلی]: تو در یک جلسه کاملاً خصوصی با ${userDisplayName || "یکی از آنها"} هستی. شریک او این پیام‌ها را نمی‌بیند.
+\n[موقعیت فعلی]: جلسه خصوصی با ${userDisplayName || "یکی از آنها"}.
 ${moodContext}
-تکنیک ادموندسون در این موقعیت: فضای ایمنی روانی را تضمین کن. به او اطمینان بده که شنیده و درک می‌شود. سپس با تکنیک NVC کمکش کن تا احساسات و نیازهای زیرین خودش را بشناسد و برای بیان آنها به شریکش (در فضای مشترک) آماده شود.
+تکنیک ادموندسون: فضای ایمن ایجاد کن. به او اطمینان بده که شنیده می‌شود.
 `;
     }
 
@@ -117,23 +125,21 @@ ${moodContext}
 
     return NextResponse.json({ text: response.text || "پاسخی دریافت نشد." });
   } catch (error: any) {
-    let errorMessage = "متأسفم، در حال حاضر ذهن من کمی خسته است (خطای سرور). لطفاً چند لحظه دیگر دوباره تلاش کنید.";
+    let errorMessage = "متأسفم، خطایی رخ داد. لطفاً دوباره تلاش کنید.";
     
     const errStr = error.message || "";
     if (errStr.includes("API key")) {
-      errorMessage = "کلید API شما معتبر نیست. به عنوان مشاور، برای ارتباط با شما به کلید معتبر نیاز دارم. لطفاً آن را در تنظیمات بررسی کنید.";
+      errorMessage = "کلید API معتبر نیست. لطفاً در تنظیمات بررسی کنید.";
     } else if (errStr.includes("model")) {
-      errorMessage = "مدل انتخاب‌شده در حال حاضر در دسترس نیست. لطفاً مدل دیگری را از تنظیمات انتخاب کنید.";
+      errorMessage = "مدل انتخاب‌شده در دسترس نیست. مدل دیگری انتخاب کنید.";
     } else if (errStr.includes("quota") || errStr.includes("429")) {
-      errorMessage = "سقف مصرف هوش مصنوعی پر شده است. لطفاً کمی استراحت کنید و بعداً دوباره برگردید، یا از کلید API شخصی استفاده کنید.";
+      errorMessage = "سقف مصرف پر شده. کمی صبر کنید یا از کلید شخصی استفاده کنید.";
     } else if (errStr.includes("fetch") || errStr.includes("network")) {
-      errorMessage = "ارتباط من با شما قطع شد (خطای شبکه). لطفاً اتصال اینترنت خود را بررسی کنید.";
+      errorMessage = "خطای شبکه. اتصال اینترنت را بررسی کنید.";
     }
 
-    // به جای خطای 500، یک پیام دوستانه از طرف AI برمی‌گردانیم تا تجربه کاربری خراب نشود
-    // مگر اینکه مشکل احراز هویت کلید باشه که باید کاربر حتما بره تنظیمات
     return NextResponse.json({ 
-      text: `⚠️ پیام سیستم مشاوره: ${errorMessage}`,
+      text: `⚠️ ${errorMessage}`,
       isError: true
     });
   }
