@@ -8,8 +8,7 @@ import {
   signInWithPopup, 
   onAuthStateChanged 
 } from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { auth, db, googleProvider } from '@/lib/firebase';
+import { auth, googleProvider } from '@/lib/firebase';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -32,19 +31,24 @@ export default function LoginPage() {
         setLoading(true);
         setError('');
         try {
-          const userDocRef = doc(db, 'users', user.uid);
-          const userDoc = await getDoc(userDocRef);
+          // Fetch user profile from Server-side proxy API
+          const res = await fetch(`/api/user?uid=${user.uid}`);
           
-          if (userDoc.exists()) {
+          if (res.status === 200) {
+            // Profile exists
             router.push('/');
-          } else {
+          } else if (res.status === 404) {
+            // Profile does not exist, show setup screen
             setCurrentUser(user);
             setDisplayName(user.displayName || '');
             setSetupMode(true);
+          } else {
+            const data = await res.json();
+            throw new Error(data.error || 'خطا در ارتباط با سرور دیتابیس');
           }
         } catch (err: any) {
-          console.error("Firestore read error:", err);
-          setError(`ارتباط با فایربیس برقرار شد، اما خواندن دیتابیس با خطا مواجه گردید (${err.code || err.message}). لطفاً بررسی کنید که دیتابیس Cloud Firestore را در کنسول فایربیس ساخته‌اید.`);
+          console.error("Profile check error:", err);
+          setError(`خطا در بررسی پروفایل (${err.message}). لطفاً وضعیت اتصال اینترنت خود را چک کنید.`);
         }
         setLoading(false);
       }
@@ -100,18 +104,32 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const finalName = displayName.trim() || (role === 'parsa' ? 'پارسا' : 'ملیکا');
-      await setDoc(doc(db, 'users', currentUser.uid), {
-        uid: currentUser.uid,
-        email: currentUser.email,
-        displayName: finalName,
-        role: role,
-        avatar: role === 'parsa' ? '👨‍💻' : '👩‍🎨',
-        createdAt: new Date().toISOString()
+      
+      // Save profile via Server-side proxy API
+      const res = await fetch('/api/user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          uid: currentUser.uid,
+          email: currentUser.email,
+          displayName: finalName,
+          role: role,
+          avatar: role === 'parsa' ? '👨‍💻' : '👩‍🎨',
+          isUpdate: false
+        })
       });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'خطا در ثبت پروفایل');
+      }
+
       router.push('/');
     } catch (err: any) {
       console.error(err);
-      setError('ذخیره اطلاعات پروفایل ناموفق بود.');
+      setError(`ذخیره اطلاعات پروفایل ناموفق بود (${err.message}).`);
       setLoading(false);
     }
   };

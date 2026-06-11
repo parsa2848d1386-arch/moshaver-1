@@ -3,17 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { 
-  doc, 
-  getDoc, 
-  collection, 
-  addDoc, 
-  query, 
-  orderBy, 
-  onSnapshot,
-  updateDoc
-} from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase';
+import { auth } from '@/lib/firebase';
 
 interface Message {
   id?: string;
@@ -21,7 +11,7 @@ interface Message {
   senderId: string;
   senderName: string;
   senderRole: string;
-  createdAt: any;
+  createdAt: string;
 }
 
 interface UserProfile {
@@ -41,6 +31,7 @@ export default function ChatPage() {
   
   // UI States
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [aiTyping, setAiTyping] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   
@@ -50,25 +41,31 @@ export default function ChatPage() {
   
   const router = useRouter();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const pollingIntervalRef = useRef<any>(null);
 
   // Monitor auth state
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         setUser(firebaseUser);
+        setError('');
         
-        // Load User Profile from Firestore
-        const userDocRef = doc(db, 'users', firebaseUser.uid);
-        const userDoc = await getDoc(userDocRef);
-        
-        if (userDoc.exists()) {
-          const profileData = userDoc.data() as UserProfile;
-          setProfile(profileData);
-          setEditName(profileData.displayName);
-          setEditAvatar(profileData.avatar);
-        } else {
-          // If no profile (edge case), redirect to login for setup
-          router.push('/login');
+        try {
+          // Load User Profile via Server-side Proxy API
+          const res = await fetch(`/api/user?uid=${firebaseUser.uid}`);
+          
+          if (res.ok) {
+            const profileData = await res.json() as UserProfile;
+            setProfile(profileData);
+            setEditName(profileData.displayName);
+            setEditAvatar(profileData.avatar);
+          } else {
+            // Profile doesn't exist or other error
+            router.push('/login');
+          }
+        } catch (err: any) {
+          console.error("Profile load error:", err);
+          setError('خطا در بارگذاری اطلاعات پروفایل از سرور. لطفاً دوباره صفحه را رفرش کنید.');
         }
       } else {
         router.push('/login');
@@ -79,31 +76,44 @@ export default function ChatPage() {
     return () => unsubscribe();
   }, [router]);
 
-  // Load and listen to messages in real-time based on chatType
+  // Function to fetch messages via Server-side proxy
+  const fetchMessages = async () => {
+    if (!user || !profile) return;
+    
+    try {
+      const res = await fetch(`/api/messages?chatType=${chatType}&uid=${user.uid}`);
+      if (res.ok) {
+        const msgs = await res.json() as Message[];
+        
+        // Only update state if message count or last message changed to avoid unnecessary re-renders
+        setMessages((prev) => {
+          if (prev.length !== msgs.length || (prev.length > 0 && prev[prev.length - 1].text !== msgs[msgs.length - 1].text)) {
+            scrollToBottom();
+            return msgs;
+          }
+          return prev;
+        });
+      }
+    } catch (err) {
+      console.error("Error fetching messages:", err);
+    }
+  };
+
+  // Poll messages every 3 seconds to ensure real-time response bypassing client-side gRPC/WS blocks
   useEffect(() => {
     if (!user || !profile) return;
 
-    let q;
-    if (chatType === 'shared') {
-      // Shared chatroom
-      const sharedRef = collection(db, 'shared_chats');
-      q = query(sharedRef, orderBy('createdAt', 'asc'));
-    } else {
-      // Private chatroom for current user
-      const privateRef = collection(db, 'private_chats', user.uid, 'messages');
-      q = query(privateRef, orderBy('createdAt', 'asc'));
-    }
+    // Fetch immediately on mount/chatType change
+    fetchMessages();
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const msgs: Message[] = [];
-      snapshot.forEach((doc) => {
-        msgs.push({ id: doc.id, ...doc.data() } as Message);
-      });
-      setMessages(msgs);
-      scrollToBottom();
-    });
+    // Start polling interval
+    pollingIntervalRef.current = setInterval(fetchMessages, 3000);
 
-    return () => unsubscribe();
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+    };
   }, [user, profile, chatType]);
 
   // Scroll chat window to bottom
@@ -122,26 +132,33 @@ export default function ChatPage() {
     setAiTyping(true);
 
     const messageData = {
+      chatType: chatType,
+      uid: user.uid,
       text: textToSend,
       senderId: user.uid,
       senderName: profile.displayName,
       senderRole: profile.role,
-      createdAt: new Date().toISOString(),
     };
 
     try {
-      // 1. Save user message to Firestore
-      let chatCollectionRef;
-      if (chatType === 'shared') {
-        chatCollectionRef = collection(db, 'shared_chats');
-      } else {
-        chatCollectionRef = collection(db, 'private_chats', user.uid, 'messages');
-      }
-      await addDoc(chatCollectionRef, messageData);
-      scrollToBottom();
+      // 1. Save user message via Server-side Proxy API
+      const saveUserRes = await fetch('/api/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(messageData),
+      });
 
-      // 2. Fetch entire recent messages from local state for Gemini API context
-      const localContext = [...messages, messageData];
+      if (!saveUserRes.ok) {
+        throw new Error('خطا در ارسال پیام به سرور.');
+      }
+
+      // Sync UI messages immediately
+      await fetchMessages();
+
+      // 2. Fetch recent messages history for Gemini API context
+      const localContext = [...messages, { ...messageData, createdAt: new Date().toISOString() }];
 
       // 3. Request AI response from server-side Route handler
       const res = await fetch('/api/chat', {
@@ -157,40 +174,52 @@ export default function ChatPage() {
       });
 
       if (!res.ok) {
-        throw new Error('مشکلی در سرور پیش آمد.');
+        throw new Error('مشکلی در سرور پاسخ‌دهی هوش مصنوعی پیش آمد.');
       }
 
       const data = await res.json();
       
-      // 4. Save AI message to Firestore
+      // 4. Save AI message via Server-side Proxy API
       const aiMessageData = {
+        chatType: chatType,
+        uid: user.uid,
         text: data.text,
         senderId: 'ai',
         senderName: 'مشاور همراه',
         senderRole: 'counselor',
-        createdAt: new Date().toISOString(),
       };
       
-      await addDoc(chatCollectionRef, aiMessageData);
+      await fetch('/api/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(aiMessageData),
+      });
 
-    } catch (err) {
+      // Sync UI messages again
+      await fetchMessages();
+
+    } catch (err: any) {
       console.error(err);
-      // Fallback message insertion on error
+      // Save error alert message via Server-side Proxy API
       const errorMessage = {
-        text: 'در حال حاضر ارتباط با مشاور هوش مصنوعی قطع است. لطفاً اتصال اینترنت خود را بررسی کنید یا کلیدهای امنیتی را مجدد چک کنید.',
+        chatType: chatType,
+        uid: user.uid,
+        text: `در حال حاضر ارتباط با مشاور هوش مصنوعی با خطا مواجه شد (${err.message}). لطفاً مجدداً تلاش کنید.`,
         senderId: 'ai',
         senderName: 'سیستم',
         senderRole: 'system',
-        createdAt: new Date().toISOString(),
       };
       
-      let chatCollectionRef;
-      if (chatType === 'shared') {
-        chatCollectionRef = collection(db, 'shared_chats');
-      } else {
-        chatCollectionRef = collection(db, 'private_chats', user.uid, 'messages');
-      }
-      await addDoc(chatCollectionRef, errorMessage);
+      await fetch('/api/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(errorMessage),
+      });
+      await fetchMessages();
     } finally {
       setAiTyping(false);
       scrollToBottom();
@@ -202,11 +231,23 @@ export default function ChatPage() {
     if (!user) return;
     
     try {
-      const userDocRef = doc(db, 'users', user.uid);
-      await updateDoc(userDocRef, {
-        displayName: editName.trim(),
-        avatar: editAvatar,
+      // Update profile via Server-side Proxy API
+      const res = await fetch('/api/user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          uid: user.uid,
+          displayName: editName.trim(),
+          avatar: editAvatar,
+          isUpdate: true
+        })
       });
+
+      if (!res.ok) {
+        throw new Error('خطا در به‌روزرسانی سرور');
+      }
       
       setProfile((prev: any) => ({
         ...prev,
@@ -215,13 +256,16 @@ export default function ChatPage() {
       }));
       
       setShowSettings(false);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error updating profile:', err);
-      alert('خطا در به‌روزرسانی اطلاعات.');
+      alert(`خطا در به‌روزرسانی اطلاعات (${err.message})`);
     }
   };
 
   const handleLogout = async () => {
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+    }
     await signOut(auth);
     router.push('/login');
   };
@@ -268,6 +312,19 @@ export default function ChatPage() {
           </button>
         </div>
       </header>
+
+      {error && (
+        <div style={{ 
+          background: 'rgba(239, 68, 68, 0.15)', 
+          border: '1px solid rgba(239, 68, 68, 0.3)', 
+          color: '#f87171', 
+          padding: '10px', 
+          fontSize: '12px',
+          textAlign: 'center' 
+        }}>
+          {error}
+        </div>
+      )}
 
       {/* SETTINGS MODAL / PANEL */}
       {showSettings ? (
@@ -359,11 +416,10 @@ export default function ChatPage() {
             ) : (
               messages.map((msg, index) => {
                 const isAi = msg.senderId === 'ai';
-                const isSystem = msg.senderRole === 'system';
+                const senderName = msg.senderName;
                 
                 // Style wrapper based on sender
                 let wrapperClass = 'message-wrapper';
-                let senderName = msg.senderName;
                 
                 if (isAi) {
                   wrapperClass += ' ai';
