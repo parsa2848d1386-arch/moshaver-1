@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { collection, addDoc, getDocs, query, orderBy } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { adminDb } from '@/lib/firebase-admin';
+import type { QueryDocumentSnapshot } from 'firebase-admin/firestore';
 
 export async function GET(request: Request) {
   try {
@@ -12,27 +12,25 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'chatType is required' }, { status: 400 });
     }
 
-    let q;
+    let colRef;
     if (chatType === 'shared') {
-      const sharedRef = collection(db, 'shared_chats');
-      q = query(sharedRef, orderBy('createdAt', 'asc'));
+      colRef = adminDb.collection('shared_chats');
     } else {
       if (!uid) {
         return NextResponse.json({ error: 'uid is required for private chat' }, { status: 400 });
       }
-      const privateRef = collection(db, 'private_chats', uid, 'messages');
-      q = query(privateRef, orderBy('createdAt', 'asc'));
+      colRef = adminDb.collection('private_chats').doc(uid).collection('messages');
     }
 
-    const snapshot = await getDocs(q);
+    const snapshot = await colRef.orderBy('createdAt', 'asc').get();
     const msgs: any[] = [];
-    snapshot.forEach((doc) => {
+    snapshot.forEach((doc: QueryDocumentSnapshot) => {
       msgs.push({ id: doc.id, ...doc.data() });
     });
 
     return NextResponse.json(msgs);
   } catch (error: any) {
-    console.error('Server Firestore messages read error:', error);
+    console.error('Admin Firestore messages read error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
@@ -51,24 +49,24 @@ export async function POST(request: Request) {
       senderId,
       senderName,
       senderRole,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
     };
 
-    let chatCollectionRef;
+    let colRef;
     if (chatType === 'shared') {
-      chatCollectionRef = collection(db, 'shared_chats');
+      colRef = adminDb.collection('shared_chats');
     } else {
       if (!uid) {
         return NextResponse.json({ error: 'uid is required for private chat' }, { status: 400 });
       }
-      chatCollectionRef = collection(db, 'private_chats', uid, 'messages');
+      colRef = adminDb.collection('private_chats').doc(uid).collection('messages');
     }
 
-    const docRef = await addDoc(chatCollectionRef, messageData);
+    const docRef = await colRef.add(messageData);
 
     return NextResponse.json({ success: true, id: docRef.id });
   } catch (error: any) {
-    console.error('Server Firestore message write error:', error);
+    console.error('Admin Firestore message write error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
