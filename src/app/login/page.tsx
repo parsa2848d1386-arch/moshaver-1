@@ -5,7 +5,9 @@ import { useRouter } from 'next/navigation';
 import { 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
-  signInWithPopup, 
+  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   onAuthStateChanged 
 } from 'firebase/auth';
 import { auth, googleProvider } from '@/lib/firebase';
@@ -25,7 +27,34 @@ export default function LoginPage() {
 
   const router = useRouter();
 
+  // تشخیص موبایل بودن دستگاه
+  const isMobile = () => {
+    if (typeof window === 'undefined') return false;
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  };
+
   useEffect(() => {
+    // بررسی نتیجه redirect بعد از Google Sign-In
+    const checkRedirectResult = async () => {
+      setLoading(true);
+      try {
+        const result = await getRedirectResult(auth);
+        if (result?.user) {
+          // کاربر از redirect گوگل برگشته - onAuthStateChanged بقیه رو هندل میکنه
+          console.log("Google redirect sign-in successful");
+        }
+      } catch (err: any) {
+        console.error("Redirect result error:", err);
+        const errCode = err.code || '';
+        if (errCode !== 'auth/null-user') {
+          setError(`ورود با گوگل ناموفق بود (${errCode || err.message}). لطفاً دوباره تلاش کنید.`);
+        }
+      }
+      setLoading(false);
+    };
+
+    checkRedirectResult();
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setLoading(true);
@@ -68,7 +97,7 @@ export default function LoginPage() {
       } else {
         await signInWithEmailAndPassword(auth, email, password);
       }
-      setLoading(false);
+      // setLoading(false) نباید اینجا باشه چون onAuthStateChanged ادامه میده
     } catch (err: any) {
       console.error("Auth error:", err);
       const errCode = err.code || '';
@@ -77,6 +106,12 @@ export default function LoginPage() {
           ? 'ایمیل یا رمز عبور اشتباه است.'
           : errCode === 'auth/email-already-in-use'
           ? 'این ایمیل قبلاً ثبت شده است.'
+          : errCode === 'auth/weak-password'
+          ? 'رمز عبور باید حداقل ۶ کاراکتر باشد.'
+          : errCode === 'auth/invalid-email'
+          ? 'فرمت ایمیل نامعتبر است.'
+          : errCode === 'auth/network-request-failed'
+          ? 'خطای شبکه. لطفاً اتصال اینترنت را بررسی کنید.'
           : `خطایی رخ داد (${errCode || err.message}). لطفاً وضعیت اتصال و فعال بودن ورود ایمیلی در کنسول فایربیس را بررسی کنید.`
       );
       setLoading(false);
@@ -87,13 +122,39 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
     try {
-      await signInWithPopup(auth, googleProvider);
-      setLoading(false);
+      if (isMobile()) {
+        // روی موبایل از redirect استفاده می‌کنیم (پاپ‌آپ بلاک می‌شه)
+        await signInWithRedirect(auth, googleProvider);
+        // صفحه redirect می‌شه، پس اینجا نمی‌رسه
+      } else {
+        // روی دسکتاپ از popup استفاده می‌کنیم
+        await signInWithPopup(auth, googleProvider);
+        setLoading(false);
+      }
     } catch (err: any) {
       console.error("Google sign in error:", err);
       const errCode = err.code || '';
-      setError(`ورود با گوگل ناموفق بود (${errCode || err.message}). اگر از موبایل استفاده می‌کنید مطمئن شوید پاپ‌آپ‌ها مسدود نیستند و دامنه ورسل در فایربیس مجاز شده است.`);
-      setLoading(false);
+      if (errCode === 'auth/popup-blocked') {
+        // اگه popup بلاک شد، سعی کن با redirect
+        try {
+          await signInWithRedirect(auth, googleProvider);
+        } catch (redirectErr: any) {
+          setError(`ورود با گوگل ناموفق بود. لطفاً اجازه popup را در مرورگر خود بدهید.`);
+          setLoading(false);
+        }
+      } else if (errCode === 'auth/popup-closed-by-user') {
+        setError('پنجره ورود بسته شد. لطفاً دوباره تلاش کنید.');
+        setLoading(false);
+      } else if (errCode === 'auth/unauthorized-domain') {
+        setError('این دامنه در Firebase مجاز نیست. لطفاً در کنسول Firebase، دامنه را به Authorized Domains اضافه کنید.');
+        setLoading(false);
+      } else if (errCode === 'auth/network-request-failed') {
+        setError('خطای شبکه. لطفاً اتصال اینترنت را بررسی کنید.');
+        setLoading(false);
+      } else {
+        setError(`ورود با گوگل ناموفق بود (${errCode || err.message}).`);
+        setLoading(false);
+      }
     }
   };
 
@@ -156,7 +217,8 @@ export default function LoginPage() {
             borderRadius: '12px', 
             marginBottom: '16px', 
             fontSize: '14px',
-            textAlign: 'center' 
+            textAlign: 'center',
+            lineHeight: '1.6'
           }}>
             {error}
           </div>
@@ -198,7 +260,6 @@ export default function LoginPage() {
                 placeholder={role === 'parsa' ? 'پارسا' : 'ملیکا'}
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
-                required
               />
             </div>
 
@@ -231,10 +292,11 @@ export default function LoginPage() {
                 <input 
                   type="password" 
                   className="input-field" 
-                  placeholder="••••••••" 
+                  placeholder="حداقل ۶ کاراکتر" 
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required 
+                  minLength={6}
                 />
               </div>
 
@@ -256,11 +318,11 @@ export default function LoginPage() {
                 <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"/>
                 <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335"/>
               </svg>
-              ورود با حساب گوگل
+              {loading ? 'در حال ورود...' : 'ورود با حساب گوگل'}
             </button>
 
             <button 
-              onClick={() => setIsSignUp(!isSignUp)} 
+              onClick={() => { setIsSignUp(!isSignUp); setError(''); }} 
               style={{ background: 'none', border: 'none', color: 'var(--primary-color)', fontSize: '14px', cursor: 'pointer', marginTop: '8px' }}
             >
               {isSignUp ? 'حساب کاربری دارید؟ وارد شوید' : 'حساب کاربری ندارید؟ ثبت نام کنید'}
