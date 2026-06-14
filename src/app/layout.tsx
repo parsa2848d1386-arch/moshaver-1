@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import "./globals.css";
 import "./additional.css";
+import { Toaster } from "sonner";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -44,7 +46,10 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        <Toaster position="top-center" richColors theme="system" dir="rtl" />
+      </body>
     </html>
   );
 }

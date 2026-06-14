@@ -21,6 +21,7 @@ export interface Message {
   voiceDuration?: number;
   memoryTag?: string;
   toneScore?: ToneScore;
+  status?: 'sending' | 'sent' | 'error';
 }
 
 export interface ToneScore {

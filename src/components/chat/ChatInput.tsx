@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import type { Message, ChatType, ToneScore } from '@/types';
 import { MOODS } from '@/constants';
 import { getCharCounterClass } from '@/utils/format';
+import TextareaAutosize from 'react-textarea-autosize';
 import ToneAnalysis from '@/components/chat/ToneAnalysis';
 
 interface ChatInputProps {
@@ -64,11 +65,6 @@ export default function ChatInput({
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
       const val = e.target.value;
       setText(val);
-
-      // Auto-resize textarea
-      const el = e.target;
-      el.style.height = 'auto';
-      el.style.height = Math.min(el.scrollHeight, 120) + 'px';
 
       // Typing indicator
       onTyping();
@@ -225,7 +221,7 @@ export default function ChatInput({
 
         {/* Textarea */}
         <div style={{ flex: 1, position: 'relative' }}>
-          <textarea
+          <TextareaAutosize
             ref={inputRef}
             className="input-field"
             value={text}
@@ -236,14 +232,14 @@ export default function ChatInput({
                 ? 'پیامتو بنویس...'
                 : 'پیام خصوصی به مشاور...'
             }
-            rows={1}
+            minRows={1}
+            maxRows={5}
             disabled={disabled}
             style={{
               resize: 'none',
-              minHeight: 44,
-              maxHeight: 120,
               paddingLeft: 44,
               borderRadius: 16,
+              overflow: 'hidden'
             }}
           />
           {/* Character counter */}

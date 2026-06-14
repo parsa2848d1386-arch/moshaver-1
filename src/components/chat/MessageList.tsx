@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useCallback, useEffect, useState, useMemo } from 'react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import type { Message, ChatType } from '@/types';
 import { formatPersianDate } from '@/utils/format';
 import MessageBubble from '@/components/chat/MessageBubble';
@@ -55,15 +56,33 @@ export default function MessageList({
   const containerRef = useRef<HTMLDivElement>(null);
   const [showScrollBtn, setShowScrollBtn] = useState(false);
   const [showPinned, setShowPinned] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const prevMessagesLength = useRef(messages.length);
 
   const scrollToBottom = useCallback(() => {
     if (containerRef.current) {
       containerRef.current.scrollTop = containerRef.current.scrollHeight;
+      setUnreadCount(0);
+      setShowScrollBtn(false);
     }
   }, []);
 
   useEffect(() => {
-    scrollToBottom();
+    const el = containerRef.current;
+    if (!el) return;
+
+    // If new messages arrived
+    if (messages.length > prevMessagesLength.current) {
+      const distFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+      // If user is not at the bottom, increment unread count instead of auto-scrolling
+      if (distFromBottom > 200) {
+        setUnreadCount(prev => prev + (messages.length - prevMessagesLength.current));
+      } else {
+        // If near bottom, scroll automatically
+        setTimeout(scrollToBottom, 50);
+      }
+    }
+    prevMessagesLength.current = messages.length;
   }, [messages.length, scrollToBottom]);
 
   const handleScroll = useCallback(() => {
@@ -77,7 +96,13 @@ export default function MessageList({
 
     // Show scroll-to-bottom button when scrolled up
     const distFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
-    setShowScrollBtn(distFromBottom > 200);
+    const isScrolledUp = distFromBottom > 200;
+    setShowScrollBtn(isScrolledUp);
+    
+    // Clear unread count when user reaches bottom
+    if (!isScrolledUp) {
+      setUnreadCount(0);
+    }
   }, [hasMore, loading, onLoadMore]);
 
   // Group messages by date for separators
@@ -96,6 +121,13 @@ export default function MessageList({
 
     return result;
   }, [messages]);
+
+  // Virtualizer for performance
+  const virtualizer = useVirtualizer({
+    count: messagesWithDates.length,
+    getScrollElement: () => containerRef.current,
+    estimateSize: () => 80, // Approximate height of a message bubble
+  });
 
   // Empty state
   if (!loading && messages.length === 0) {
@@ -200,51 +232,63 @@ export default function MessageList({
         </div>
       )}
 
-      {/* Messages with date separators */}
-      {messagesWithDates.map((item, idx) => {
-        if (item.type === 'date' && item.date) {
+      {/* Virtualized Messages */}
+      <div
+        style={{
+          height: `${virtualizer.getTotalSize()}px`,
+          width: '100%',
+          position: 'relative',
+        }}
+      >
+        {virtualizer.getVirtualItems().map((virtualRow) => {
+          const item = messagesWithDates[virtualRow.index];
           return (
             <div
-              key={`date-${idx}`}
+              key={virtualRow.key}
+              data-index={virtualRow.index}
+              ref={virtualizer.measureElement}
               style={{
-                textAlign: 'center',
-                padding: '8px 0',
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                transform: `translateY(${virtualRow.start}px)`,
+                padding: '4px 0',
               }}
             >
-              <span
-                style={{
-                  fontSize: 11,
-                  color: 'var(--text-muted)',
-                  background: 'var(--card-bg)',
-                  border: '1px solid var(--card-border)',
-                  borderRadius: 10,
-                  padding: '4px 14px',
-                }}
-              >
-                {formatPersianDate(item.date)}
-              </span>
+              {item.type === 'date' && item.date ? (
+                <div style={{ textAlign: 'center' }}>
+                  <span
+                    style={{
+                      fontSize: 11,
+                      color: 'var(--text-muted)',
+                      background: 'var(--card-bg)',
+                      border: '1px solid var(--card-border)',
+                      borderRadius: 10,
+                      padding: '4px 14px',
+                    }}
+                  >
+                    {formatPersianDate(item.date)}
+                  </span>
+                </div>
+              ) : item.type === 'message' && item.message ? (
+                <MessageBubble
+                  message={item.message}
+                  currentUserId={currentUserId}
+                  onCopy={onCopy}
+                  onReply={onReply}
+                  onEdit={onEdit}
+                  onDelete={onDelete}
+                  onPin={onPin}
+                  onReaction={onReaction}
+                  onTagMemory={onTagMemory}
+                  onPerspective={onPerspective}
+                />
+              ) : null}
             </div>
           );
-        }
-        if (item.type === 'message' && item.message) {
-          return (
-            <MessageBubble
-              key={item.message.id || idx}
-              message={item.message}
-              currentUserId={currentUserId}
-              onCopy={onCopy}
-              onReply={onReply}
-              onEdit={onEdit}
-              onDelete={onDelete}
-              onPin={onPin}
-              onReaction={onReaction}
-              onTagMemory={onTagMemory}
-              onPerspective={onPerspective}
-            />
-          );
-        }
-        return null;
-      })}
+        })}
+      </div>
 
       {/* AI typing indicator */}
       {aiTyping && (
@@ -274,6 +318,27 @@ export default function MessageList({
       {showScrollBtn && (
         <button className="scroll-to-bottom" onClick={scrollToBottom}>
           ⬇
+          {unreadCount > 0 && (
+            <span style={{
+              position: 'absolute',
+              top: -8,
+              right: -8,
+              background: 'var(--danger-color)',
+              color: 'white',
+              fontSize: 11,
+              fontWeight: 'bold',
+              minWidth: 20,
+              height: 20,
+              borderRadius: 10,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '0 4px',
+              animation: 'bounceIn 0.3s ease'
+            }}>
+              {unreadCount}
+            </span>
+          )}
         </button>
       )}
     </div>

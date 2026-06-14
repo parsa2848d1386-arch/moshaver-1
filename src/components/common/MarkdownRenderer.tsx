@@ -1,6 +1,7 @@
 'use client';
 
-import { renderMarkdown } from '@/utils/format';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface MarkdownRendererProps {
   text: string;
@@ -8,12 +9,11 @@ interface MarkdownRendererProps {
 }
 
 export default function MarkdownRenderer({ text, className }: MarkdownRendererProps) {
-  const html = renderMarkdown(text);
-
   return (
-    <span
-      className={className}
-      dangerouslySetInnerHTML={{ __html: html }}
-    />
+    <div className={`markdown-body ${className || ''}`} style={{ direction: 'rtl', textAlign: 'right' }}>
+      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+        {text}
+      </ReactMarkdown>
+    </div>
   );
 }

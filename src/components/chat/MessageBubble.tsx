@@ -5,6 +5,8 @@ import type { Message } from '@/types';
 import { REACTION_EMOJIS } from '@/constants';
 import { formatRelativeTime } from '@/utils/format';
 import MarkdownRenderer from '@/components/common/MarkdownRenderer';
+import Zoom from 'react-medium-image-zoom';
+import 'react-medium-image-zoom/dist/styles.css';
 
 interface MessageBubbleProps {
   message: Message;
@@ -138,16 +140,18 @@ export default function MessageBubble({
         {/* Image display */}
         {message.imageUrl && (
           <div style={{ marginBottom: 8, borderRadius: 12, overflow: 'hidden' }}>
-            <img
-              src={message.imageUrl}
-              alt="تصویر پیوست"
-              style={{
-                width: '100%',
-                maxHeight: 250,
-                objectFit: 'cover',
-                borderRadius: 12,
-              }}
-            />
+            <Zoom>
+              <img
+                src={message.imageUrl}
+                alt="تصویر پیوست"
+                style={{
+                  width: '100%',
+                  maxHeight: 250,
+                  objectFit: 'cover',
+                  borderRadius: 12,
+                }}
+              />
+            </Zoom>
           </div>
         )}
 
@@ -371,9 +375,18 @@ export default function MessageBubble({
         </div>
       )}
 
-      {/* Time */}
-      <span className="message-time">
+      {/* Time & Status */}
+      <span className="message-time" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
         {formatRelativeTime(message.createdAt)}
+        {isOwn && message.status === 'sending' && (
+          <span style={{ fontSize: 10, opacity: 0.6 }}>🕒</span>
+        )}
+        {isOwn && (message.status === 'sent' || !message.status) && (
+          <span style={{ fontSize: 10, opacity: 0.8, color: 'var(--primary-color)' }}>✓</span>
+        )}
+        {isOwn && message.status === 'error' && (
+          <span style={{ fontSize: 10, color: 'var(--danger-color)' }}>❌</span>
+        )}
       </span>
     </div>
   );

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { adminDb } from '@/lib/firebase-admin';
 import { checkRateLimit } from '@/utils/rateLimit';
-import type { QueryDocumentSnapshot } from 'firebase-admin/firestore';
+import { MessageSchema } from '@/lib/schemas';
+import { MessageService } from '@/services/messageService';
 
 export async function GET(request: Request) {
   try {
@@ -15,38 +15,8 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'chatType is required' }, { status: 400 });
     }
 
-    let colRef;
-    if (chatType === 'shared') {
-      colRef = adminDb.collection('shared_chats');
-    } else {
-      if (!uid) {
-        return NextResponse.json({ error: 'uid is required for private chat' }, { status: 400 });
-      }
-      colRef = adminDb.collection('private_chats').doc(uid).collection('messages');
-    }
-
-    const pageSize = parseInt(limitParam || '20', 10);
-    let q = colRef.orderBy('createdAt', 'desc').limit(pageSize);
-
-    // Cursor-based pagination
-    if (beforeId) {
-      const beforeDoc = await colRef.doc(beforeId).get();
-      if (beforeDoc.exists) {
-        q = colRef.orderBy('createdAt', 'desc').startAfter(beforeDoc).limit(pageSize);
-      }
-    }
-
-    const snapshot = await q.get();
-    const msgs: any[] = [];
-    snapshot.forEach((doc: QueryDocumentSnapshot) => {
-      msgs.push({ id: doc.id, ...doc.data() });
-    });
-
-    return NextResponse.json({
-      items: msgs.reverse(),
-      hasMore: msgs.length >= pageSize,
-      lastId: msgs.length > 0 ? msgs[0].id : null,
-    });
+    const result = await MessageService.getMessages(chatType, uid, limitParam, beforeId);
+    return NextResponse.json(result);
   } catch (error: any) {
     console.error('Messages read error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -56,14 +26,16 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { chatType, uid, text, senderId, senderName, senderRole, mood, replyTo, imageUrl, voiceUrl, voiceDuration } = body;
-
-    if (!chatType || !text || !senderId) {
-      return NextResponse.json({ error: 'Missing parameters' }, { status: 400 });
+    
+    // Zod Validation
+    const validation = MessageSchema.safeParse(body);
+    if (!validation.success) {
+      return NextResponse.json({ error: validation.error.errors }, { status: 400 });
     }
+    const validatedData = validation.data;
 
-    // Rate limiting
-    const rl = checkRateLimit(`msg_${senderId}`, 30, 60000);
+    // Rate limiting with Redis
+    const rl = await checkRateLimit(`msg_${validatedData.senderId}`, 30, 60000);
     if (!rl.allowed) {
       return NextResponse.json(
         { error: 'تعداد پیام‌های شما بیش از حد مجاز است. لطفاً کمی صبر کنید.' },
@@ -71,37 +43,10 @@ export async function POST(request: Request) {
       );
     }
 
-    const messageData: Record<string, any> = {
-      text,
-      senderId,
-      senderName,
-      senderRole,
-      createdAt: new Date().toISOString(),
-      isEdited: false,
-      isDeleted: false,
-      isPinned: false,
-      reactions: {},
-    };
+    // Call Service
+    const message = await MessageService.createMessage(validatedData);
 
-    if (mood) messageData.mood = mood;
-    if (replyTo) messageData.replyTo = replyTo;
-    if (imageUrl) messageData.imageUrl = imageUrl;
-    if (voiceUrl) messageData.voiceUrl = voiceUrl;
-    if (voiceDuration) messageData.voiceDuration = voiceDuration;
-
-    let colRef;
-    if (chatType === 'shared') {
-      colRef = adminDb.collection('shared_chats');
-    } else {
-      if (!uid) {
-        return NextResponse.json({ error: 'uid is required for private chat' }, { status: 400 });
-      }
-      colRef = adminDb.collection('private_chats').doc(uid).collection('messages');
-    }
-
-    const docRef = await colRef.add(messageData);
-
-    return NextResponse.json({ success: true, id: docRef.id, ...messageData });
+    return NextResponse.json({ success: true, ...message });
   } catch (error: any) {
     console.error('Message write error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });

@@ -1,36 +1,41 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# پلتفرم مشاوره هوشمند (Moshaver-1)
 
-## Getting Started
+این پروژه یک سیستم چت پیشرفته برای مشاوره است که از هوش مصنوعی برای تحلیل لحن، استخراج حافظه بلندمدت و ردیابی وضعیت روانی کاربران استفاده می‌کند.
 
-First, run the development server:
+## تکنولوژی‌های استفاده شده (Tech Stack)
 
+- **فریم‌ورک**: Next.js (App Router)
+- **زبان**: TypeScript
+- **استایل‌دهی**: Tailwind CSS + Glassmorphism UI
+- **پایگاه داده**: Firebase Firestore
+- **مدیریت وضعیت**: Zustand
+- **رندر مجازی**: TanStack Virtual
+- **صفحات پس‌زمینه (Cron / Queues)**: Upstash QStash
+- **محدودکننده درخواست (Rate Limiting)**: Upstash Redis
+- **هوش مصنوعی**: Google Gemini API
+- **اعتبارسنجی**: Zod
+- **تست**: Vitest (Unit) + Playwright (E2E)
+
+## نحوه اجرای پروژه (Local Development)
+
+۱. ریپازیتوری را کلون کنید.
+۲. وابستگی‌ها را نصب کنید:
+```bash
+npm install
+```
+۳. فایل `.env.local` را ایجاد کنید و کلیدهای ضروری (Firebase, Upstash, Gemini) را قرار دهید.
+۴. سرور توسعه را اجرا کنید:
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
+۵. پروژه در `http://localhost:3000` در دسترس خواهد بود.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## ساختار پروژه‌
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `src/app`: روت‌های Next.js و APIها
+- `src/components`: کامپوننت‌های رابط کاربری
+- `src/services`: لایه منطق تجاری (Business Logic)
+- `src/store`: وضعیت‌های سراسری با Zustand
+- `src/lib`: پیکربندی‌ها و Zod Schemas
+- `src/__tests__`: تست‌های واحد
+- `e2e`: تست‌های یکپارچه

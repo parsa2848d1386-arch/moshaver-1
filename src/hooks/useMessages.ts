@@ -10,11 +10,13 @@ import {
   getDocs,
   doc,
   getDoc,
+import {
   QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Message, ChatType, PaginatedResponse } from '@/types';
 import { MESSAGE_PAGE_SIZE } from '@/constants';
+import { toast } from 'sonner';
 
 export function useMessages(uid: string | null, chatType: ChatType) {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -61,6 +63,7 @@ export function useMessages(uid: string | null, chatType: ChatType) {
       (err) => {
         console.error('Realtime listener error:', err);
         setLoading(false);
+        toast.error('خطا در دریافت لحظه‌ای پیام‌ها');
       }
     );
 
@@ -111,17 +114,61 @@ export function useMessages(uid: string | null, chatType: ChatType) {
       voiceUrl?: string;
       voiceDuration?: number;
     }) => {
-      const res = await fetch('/api/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chatType,
-          uid,
-          ...data,
-        }),
-      });
-      if (!res.ok) throw new Error('خطا در ارسال پیام.');
-      return res.json();
+      // Haptic Feedback
+      if (typeof window !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate(50);
+      }
+
+      // Sound Effect
+      try {
+         const audio = new Audio('/sounds/send.mp3');
+         audio.volume = 0.5;
+         audio.play().catch(() => {});
+      } catch (e) {}
+
+      // Optimistic Update
+      const tempId = `temp_${Date.now()}`;
+      const tempMessage: Message = {
+        id: tempId,
+        ...data,
+        createdAt: new Date().toISOString(),
+        status: 'sending'
+      };
+
+      setMessages(prev => [...prev, tempMessage]);
+
+      try {
+        const res = await fetch('/api/messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chatType,
+            uid,
+            ...data,
+          }),
+        });
+        
+        if (!res.ok) {
+           const errData = await res.json();
+           throw new Error(errData.error || 'خطا در ارسال پیام.');
+        }
+
+        const responseData = await res.json();
+        
+        // Update local state
+        setMessages(prev => prev.map(msg => 
+          msg.id === tempId ? { ...msg, id: responseData.id, status: 'sent' } : msg
+        ));
+        
+        return responseData;
+      } catch (error: any) {
+        toast.error(error.message || 'مشکلی پیش آمد.');
+        // Set error status
+        setMessages(prev => prev.map(msg => 
+          msg.id === tempId ? { ...msg, status: 'error' } : msg
+        ));
+        throw error;
+      }
     },
     [uid, chatType]
   );
