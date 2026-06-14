@@ -6,28 +6,28 @@ import { useAuth } from '@/hooks/useAuth';
 import { useMessages } from '@/hooks/useMessages';
 import { useToast } from '@/hooks/useToast';
 import { useTyping } from '@/hooks/useTyping';
-import type { Message, ChatType, ActiveTab, ToneScore, UserSettings, ConflictSession, SharedGoal, CalendarEvent, DailyQuestion as DailyQuestionType } from '@/types';
+import type { Message, ChatType, ActiveTab, ToneScore, UserSettings, ConflictSession, SharedGoal, CalendarEvent, DailyQuestion as DailyQuestionType, UserProfile } from '@/types';
 import { MOODS } from '@/constants';
 
 // ===== COMPONENTS =====
-import { ToastContainer } from '@/components/common/Toast';
-import { ConfirmDialog } from '@/components/common/ConfirmDialog';
-import { ErrorBoundary } from '@/components/common/ErrorBoundary';
-import { OfflineBanner } from '@/components/common/OfflineBanner';
-import { InstallPrompt } from '@/components/common/InstallPrompt';
-import { ChatHeader } from '@/components/chat/ChatHeader';
-import { MessageList } from '@/components/chat/MessageList';
-import { ChatInput } from '@/components/chat/ChatInput';
-import { SearchBar } from '@/components/chat/SearchBar';
-import { ConflictMode } from '@/components/chat/ConflictMode';
-import { SettingsPanel } from '@/components/settings/SettingsPanel';
-import { DailyQuestion } from '@/components/engagement/DailyQuestion';
-import { SharedCalendar } from '@/components/engagement/SharedCalendar';
-import { GoalSetting } from '@/components/engagement/GoalSetting';
-import { ApologyGuide } from '@/components/engagement/ApologyGuide';
-import { ExerciseLibrary } from '@/components/engagement/ExerciseLibrary';
-import { MoodTracker } from '@/components/engagement/MoodTracker';
-import { WeeklyReport } from '@/components/insights/WeeklyReport';
+import ToastContainer from '@/components/common/Toast';
+import ConfirmDialog from '@/components/common/ConfirmDialog';
+import ErrorBoundary from '@/components/common/ErrorBoundary';
+import OfflineBanner from '@/components/common/OfflineBanner';
+import InstallPrompt from '@/components/common/InstallPrompt';
+import ChatHeader from '@/components/chat/ChatHeader';
+import MessageList from '@/components/chat/MessageList';
+import ChatInput from '@/components/chat/ChatInput';
+import SearchBar from '@/components/chat/SearchBar';
+import ConflictMode from '@/components/chat/ConflictMode';
+import SettingsPanel from '@/components/settings/SettingsPanel';
+import DailyQuestion from '@/components/engagement/DailyQuestion';
+import SharedCalendar from '@/components/engagement/SharedCalendar';
+import GoalSetting from '@/components/engagement/GoalSetting';
+import ApologyGuide from '@/components/engagement/ApologyGuide';
+import ExerciseLibrary from '@/components/engagement/ExerciseLibrary';
+import MoodTracker from '@/components/engagement/MoodTracker';
+import WeeklyReport from '@/components/insights/WeeklyReport';
 
 // ===== MAIN PAGE =====
 export default function ChatPage() {
@@ -129,7 +129,7 @@ export default function ChatPage() {
   }, []);
 
   // ===== SEND MESSAGE WITH STREAMING =====
-  const handleSendMessage = useCallback(async (text: string) => {
+  const handleSendMessage = useCallback(async (text: string, inputMood?: string) => {
     if (!text.trim() || !user || !profile) return;
 
     setAiTyping(true);
@@ -140,11 +140,10 @@ export default function ChatPage() {
       senderId: user.uid,
       senderName: profile.displayName,
       senderRole: profile.role,
-      mood: selectedMood || undefined,
+      mood: inputMood || undefined,
       replyTo: replyTo || undefined,
     };
 
-    setSelectedMood('');
     setReplyTo(null);
 
     try {
@@ -372,9 +371,9 @@ export default function ChatPage() {
   }, [conflictSession, user, showToast]);
 
   // ===== COPY MESSAGE =====
-  const handleCopy = useCallback(async (msg: Message) => {
+  const handleCopy = useCallback(async (text: string) => {
     try {
-      await navigator.clipboard.writeText(msg.text);
+      await navigator.clipboard.writeText(text);
       showToast('پیام کپی شد', 'success');
     } catch {
       showToast('خطا در کپی', 'error');
@@ -382,9 +381,9 @@ export default function ChatPage() {
   }, [showToast]);
 
   // ===== SAVE SETTINGS =====
-  const handleSaveSettings = useCallback(async (name: string, avatar: string, settings: UserSettings) => {
+  const handleSaveSettings = useCallback(async (profileUpdate: Partial<UserProfile>, settings: UserSettings) => {
     try {
-      await saveSettings(name, avatar, settings);
+      await saveSettings(profileUpdate.displayName || profile!.displayName, profileUpdate.avatar || profile!.avatar, settings);
       setSelectedModel(settings.aiModel);
       setCustomApiKey(settings.customApiKey);
       setCustomModelName(settings.customModelName);
@@ -663,7 +662,7 @@ export default function ChatPage() {
             <GoalSetting
               goals={goals}
               onAdd={handleAddGoal}
-              onUpdate={handleUpdateGoal}
+              onUpdate={(id, progress) => handleUpdateGoal(id, { progress })}
               onComplete={(id) => handleUpdateGoal(id, { status: 'completed', progress: 100 })}
             />
 
@@ -763,15 +762,20 @@ export default function ChatPage() {
               currentUserId={user?.uid || ''}
               chatType={chatType}
               aiTyping={aiTyping}
-              streamingText={streamingText}
               partnerTyping={false}
               onCopy={handleCopy}
               onReply={(msg) => setReplyTo({ id: msg.id || '', text: msg.text, senderName: msg.senderName })}
-              onEdit={(msg, newText) => editMessage(msg.id || '', newText)}
+              onEdit={(msg) => {
+                const newText = window.prompt('متن جدید پیام:', msg.text);
+                if (newText && newText !== msg.text) editMessage(msg.id || '', newText);
+              }}
               onDelete={(msg) => deleteMessage(msg.id || '')}
               onPin={(msg) => togglePin(msg.id || '', msg.isPinned || false)}
               onReaction={(msg, emoji) => addReaction(msg.id || '', emoji, user?.uid || '')}
-              onTagMemory={(msg, tag) => handleTagMemory(msg.id || '', msg.text, tag)}
+              onTagMemory={(msg) => {
+                const tag = window.prompt('نام خاطره (مثلاً 💛 سالگرد آشنایی):');
+                if (tag) handleTagMemory(msg.id || '', msg.text, tag);
+              }}
               onPerspective={handlePerspective}
             />
 
@@ -781,14 +785,13 @@ export default function ChatPage() {
               disabled={aiTyping}
               replyTo={replyTo}
               onCancelReply={() => setReplyTo(null)}
+              onVoiceSend={() => showToast('این قابلیت به زودی اضافه می‌شود', 'info')}
+              onImageSend={() => showToast('این قابلیت به زودی اضافه می‌شود', 'info')}
               chatType={chatType}
               toneWarning={toneWarning}
               onAnalyzeTone={handleAnalyzeTone}
               onNvcTranslate={handleNvcTranslate}
               onTyping={handleTypingStart}
-              onSearch={() => setShowSearch(true)}
-              selectedMood={selectedMood}
-              onMoodChange={setSelectedMood}
             />
           </>
         )}

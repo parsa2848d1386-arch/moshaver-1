@@ -18,10 +18,10 @@ interface MessageListProps {
   onCopy: (text: string) => void;
   onReply: (message: Message) => void;
   onEdit: (message: Message) => void;
-  onDelete: (messageId: string) => void;
-  onPin: (messageId: string) => void;
-  onReaction: (messageId: string, emoji: string) => void;
-  onTagMemory: (messageId: string) => void;
+  onDelete: (message: Message) => void;
+  onPin: (message: Message) => void;
+  onReaction: (message: Message, emoji: string) => void;
+  onTagMemory: (message: Message) => void;
   onPerspective: (message: Message) => void;
 }
 

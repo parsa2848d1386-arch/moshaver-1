@@ -12,10 +12,10 @@ interface MessageBubbleProps {
   onCopy: (text: string) => void;
   onReply: (message: Message) => void;
   onEdit: (message: Message) => void;
-  onDelete: (messageId: string) => void;
-  onPin: (messageId: string) => void;
-  onReaction: (messageId: string, emoji: string) => void;
-  onTagMemory: (messageId: string) => void;
+  onDelete: (message: Message) => void;
+  onPin: (message: Message) => void;
+  onReaction: (message: Message, emoji: string) => void;
+  onTagMemory: (message: Message) => void;
   onPerspective: (message: Message) => void;
 }
 
@@ -247,7 +247,7 @@ export default function MessageBubble({
           </button>
           <button
             className="copy-btn"
-            onClick={() => onPin(message.id || '')}
+            onClick={() => onPin(message)}
             title={message.isPinned ? 'برداشتن پین' : 'پین'}
           >
             📌
@@ -261,7 +261,7 @@ export default function MessageBubble({
           </button>
           <button
             className="copy-btn"
-            onClick={() => onTagMemory(message.id || '')}
+            onClick={() => onTagMemory(message)}
             title="ثبت خاطره"
           >
             🏷️
@@ -284,7 +284,7 @@ export default function MessageBubble({
               </button>
               <button
                 className="copy-btn"
-                onClick={() => onDelete(message.id || '')}
+                onClick={() => onDelete(message)}
                 title="حذف"
               >
                 🗑️
@@ -307,7 +307,7 @@ export default function MessageBubble({
           {totalReactions.map(([emoji, users]) => (
             <button
               key={emoji}
-              onClick={() => onReaction(message.id || '', emoji)}
+              onClick={() => onReaction(message, emoji)}
               style={{
                 background: 'var(--card-bg)',
                 border: '1px solid var(--card-border)',
@@ -347,7 +347,7 @@ export default function MessageBubble({
             <button
               key={emoji}
               onClick={() => {
-                onReaction(message.id || '', emoji);
+                onReaction(message, emoji);
                 setShowReactions(false);
               }}
               style={{

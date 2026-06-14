@@ -9,7 +9,7 @@ import ToneAnalysis from '@/components/chat/ToneAnalysis';
 interface ChatInputProps {
   onSend: (text: string, mood: string) => void;
   disabled: boolean;
-  replyTo: Message | null;
+  replyTo: Message['replyTo'] | null;
   onCancelReply: () => void;
   onVoiceSend: () => void;
   onImageSend: () => void;

@@ -91,7 +91,7 @@ export async function POST(request: Request) {
     }
 
     // Use streaming API
-    const stream = ai.models.generateContentStream({
+    const stream = await ai.models.generateContentStream({
       model: modelName,
       contents,
       config: {
