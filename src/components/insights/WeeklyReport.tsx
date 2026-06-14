@@ -26,6 +26,15 @@ interface WeeklyReportProps {
 }
 
 export default function WeeklyReport({ report }: WeeklyReportProps) {
+  if (!report) {
+    return (
+      <div className="settings-section" style={{ textAlign: 'center', padding: 32 }}>
+        <div style={{ fontSize: 40, opacity: 0.5, marginBottom: 16 }}>📊</div>
+        <p style={{ color: 'var(--text-muted)' }}>گزارشی برای نمایش وجود ندارد. روی دکمه زیر کلیک کنید تا گزارش تولید شود.</p>
+      </div>
+    );
+  }
+
   const scoreColor =
     report.healthScore >= 70
       ? 'var(--success-color)'

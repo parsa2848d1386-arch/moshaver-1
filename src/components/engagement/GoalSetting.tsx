@@ -38,8 +38,9 @@ export default function GoalSetting({
     setShowForm(false);
   };
 
-  const activeGoals = goals.filter((g) => g.status === 'active');
-  const completedGoals = goals.filter((g) => g.status === 'completed');
+  const safeGoals = Array.isArray(goals) ? goals : [];
+  const activeGoals = safeGoals.filter((g) => g.status === 'active');
+  const completedGoals = safeGoals.filter((g) => g.status === 'completed');
 
   return (
     <div className="settings-container" style={{ gap: 14 }}>
@@ -267,7 +268,7 @@ export default function GoalSetting({
       )}
 
       {/* Empty state */}
-      {goals.length === 0 && !showForm && (
+      {safeGoals.length === 0 && !showForm && (
         <div className="empty-state">
           <div className="empty-state-icon">🎯</div>
           <p className="empty-state-text">
