@@ -30,7 +30,7 @@ export async function POST(request: Request) {
     }
 
     // Rate limiting
-    const rl = checkRateLimit(`stream_${userDisplayName}`, 15, 60000);
+    const rl = await checkRateLimit(`stream_${userDisplayName}`, 15, 60000);
     if (!rl.allowed) {
       return new Response("data: " + JSON.stringify({ text: "⚠️ تعداد درخواست‌ها بیش از حد مجاز. لطفاً ۱ دقیقه صبر کنید." }) + "\n\ndata: [DONE]\n\n", {
         headers: {

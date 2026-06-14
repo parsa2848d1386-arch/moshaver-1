@@ -31,8 +31,8 @@ const TONE_ANALYSIS_PROMPT = `
 
 export async function POST(request: Request) {
   try {
-    // اعمال محدودیت نرخ
-    const rateLimitResult = checkRateLimit('tone-analysis', 20, 60000);
+    // Rate limiting
+    const rateLimitResult = await checkRateLimit('tone-analysis', 20, 60000);
     if (!rateLimitResult.allowed) {
       return NextResponse.json(
         {

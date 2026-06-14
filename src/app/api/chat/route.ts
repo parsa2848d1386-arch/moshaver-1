@@ -41,7 +41,7 @@ export async function POST(request: Request) {
     }
 
     // Rate limiting
-    const rl = checkRateLimit(`chat_${userDisplayName}`, 15, 60000);
+    const rl = await checkRateLimit(`chat_${userDisplayName}`, 15, 60000);
     if (!rl.allowed) {
       return NextResponse.json({
         text: "⚠️ تعداد درخواست‌های شما بیش از حد مجاز است. لطفاً ۱ دقیقه صبر کنید.",

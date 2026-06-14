@@ -33,8 +33,8 @@ const WEEKLY_REPORT_PROMPT = `
 
 export async function GET(request: Request) {
   try {
-    // اعمال محدودیت نرخ
-    const rateLimitResult = checkRateLimit('weekly-report', 5, 60000);
+    // Rate limiting
+    const rateLimitResult = await checkRateLimit('weekly-report', 5, 60000);
     if (!rateLimitResult.allowed) {
       return NextResponse.json(
         {

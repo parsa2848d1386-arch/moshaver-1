@@ -28,7 +28,7 @@ const NVC_TRANSLATE_PROMPT = `
 export async function POST(request: Request) {
   try {
     // اعمال محدودیت نرخ
-    const rateLimitResult = checkRateLimit('nvc-translate', 20, 60000);
+    const rateLimitResult = await checkRateLimit('nvc-translate', 20, 60000);
     if (!rateLimitResult.allowed) {
       return NextResponse.json(
         {
