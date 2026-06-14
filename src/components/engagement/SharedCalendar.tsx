@@ -50,9 +50,11 @@ export default function SharedCalendar({
     month: 'long',
   }).format(new Date(currentYear, currentMonth, 1));
 
+  const safeEvents = Array.isArray(events) ? events : [];
+
   const eventsMap = useMemo(() => {
     const map: Record<string, CalendarEvent[]> = {};
-    for (const ev of events) {
+    for (const ev of safeEvents) {
       const d = new Date(ev.date);
       if (d.getFullYear() === currentYear && d.getMonth() === currentMonth) {
         const key = d.getDate().toString();
@@ -61,7 +63,7 @@ export default function SharedCalendar({
       }
     }
     return map;
-  }, [events, currentYear, currentMonth]);
+  }, [safeEvents, currentYear, currentMonth]);
 
   const handlePrevMonth = () => {
     if (currentMonth === 0) {
@@ -95,7 +97,7 @@ export default function SharedCalendar({
     setShowAddForm(false);
   };
 
-  const monthEvents = events.filter((ev) => {
+  const monthEvents = safeEvents.filter((ev) => {
     const d = new Date(ev.date);
     return d.getFullYear() === currentYear && d.getMonth() === currentMonth;
   });
