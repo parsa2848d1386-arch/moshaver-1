@@ -299,7 +299,7 @@ export default function MessageList({
       {/* Scroll to bottom button */}
       {showScrollBtn && (
         <button 
-          className="fixed bottom-24 right-8 w-10 h-10 bg-blue-500 hover:bg-blue-600 rounded-full flex items-center justify-center text-white shadow-xl transition-transform hover:scale-110 z-50" 
+          className="absolute bottom-4 right-4 w-10 h-10 bg-blue-500 hover:bg-blue-600 rounded-full flex items-center justify-center text-white shadow-xl transition-transform hover:scale-110 z-50" 
           onClick={scrollToBottom}
         >
           ⬇

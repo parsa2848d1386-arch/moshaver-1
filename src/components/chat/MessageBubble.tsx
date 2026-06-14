@@ -72,7 +72,7 @@ export default function MessageBubble({
       dir="rtl"
     >
       {!isOwn && !isAi && (
-        <span className="text-zinc-500 text-xs mb-1 ml-2">{message.senderName}</span>
+        <span className="text-zinc-500 text-xs mb-1 mr-12">{message.senderName}</span>
       )}
 
       {/* Reply indicator */}

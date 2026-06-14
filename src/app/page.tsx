@@ -574,7 +574,7 @@ export default function ChatPage() {
         </div>
 
         {/* Header */}
-        <header className="absolute top-0 w-full p-4 flex justify-between items-center z-30">
+        <header className="w-full px-4 py-3 flex justify-between items-center z-30 shrink-0 bg-[#09090B]/80 backdrop-blur-md border-b border-white/5">
           <button 
             onClick={() => setSidebarOpen(true)}
             className="p-2 rounded-full hover:bg-white/10 transition-colors text-zinc-300"
@@ -699,8 +699,7 @@ export default function ChatPage() {
         )}
 
         {/* MAIN CONTENT AREA */}
-        <div className={`absolute inset-0 pt-20 pb-32 z-20 ${activeTab === 'chat' ? 'overflow-hidden flex flex-col' : 'overflow-y-auto scrollbar-hide'}`}>
-          <div className="max-w-3xl w-full mx-auto px-4 sm:px-8 h-full flex flex-col relative">
+        <div className={`flex-1 w-full max-w-3xl mx-auto px-4 sm:px-8 z-20 relative ${activeTab === 'chat' ? 'overflow-hidden flex flex-col' : 'overflow-y-auto scrollbar-hide pb-20'}`}>
 
             {/* ===== SETTINGS TAB ===== */}
             {activeTab === 'settings' && (
@@ -898,11 +897,10 @@ export default function ChatPage() {
               </>
             )}
           </div>
-        </div>
 
         {/* BOTTOM INPUT AREA */}
         {activeTab === 'chat' && (
-          <div className="absolute bottom-0 w-full bg-gradient-to-t from-[#09090B] via-[#09090B]/80 to-transparent pt-10 z-30">
+          <div className="shrink-0 w-full bg-gradient-to-t from-[#09090B] via-[#09090B] to-[#09090B]/40 z-30 relative pt-2">
             <ChatInput
               onSend={handleSendMessage}
               disabled={aiTyping}
