@@ -144,7 +144,7 @@ export default function MessageBubble({
           </div>
           
           <div className="flex-1 max-w-[90%]">
-            <div className={`prose prose-invert prose-zinc max-w-none leading-8 ${isAi ? 'text-zinc-200' : 'bg-zinc-900/80 backdrop-blur-md px-5 py-3.5 rounded-3xl rounded-tl-sm border border-white/5 text-zinc-100'}`}>
+            <div className={`prose prose-invert prose-zinc max-w-none leading-8 prose-p:my-1 prose-headings:my-2 prose-ul:my-1 prose-li:my-0 ${isAi ? 'text-zinc-200' : 'bg-zinc-900/80 backdrop-blur-md px-5 py-3.5 rounded-3xl rounded-tl-sm border border-white/5 text-zinc-100'}`}>
               {/* Image display */}
               {message.imageUrl && (
                 <div className="mb-3 rounded-2xl overflow-hidden">

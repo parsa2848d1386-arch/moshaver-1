@@ -699,8 +699,8 @@ export default function ChatPage() {
         )}
 
         {/* MAIN CONTENT AREA */}
-        <div className="absolute inset-0 pt-20 pb-28 overflow-y-auto scrollbar-hide z-20">
-          <div className="max-w-3xl w-full mx-auto px-4 sm:px-8 h-full flex flex-col">
+        <div className={`absolute inset-0 pt-20 pb-32 z-20 ${activeTab === 'chat' ? 'overflow-hidden flex flex-col' : 'overflow-y-auto scrollbar-hide'}`}>
+          <div className="max-w-3xl w-full mx-auto px-4 sm:px-8 h-full flex flex-col relative">
 
             {/* ===== SETTINGS TAB ===== */}
             {activeTab === 'settings' && (
@@ -848,7 +848,7 @@ export default function ChatPage() {
                 </div>
 
                 {/* MESSAGES */}
-                <div className="flex-1 flex flex-col justify-end">
+                <div className="flex-1 min-h-0 flex flex-col relative">
                   <MessageList
                     messages={messages}
                     loading={msgsLoading}
