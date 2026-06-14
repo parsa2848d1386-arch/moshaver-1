@@ -28,6 +28,7 @@ import ApologyGuide from '@/components/engagement/ApologyGuide';
 import ExerciseLibrary from '@/components/engagement/ExerciseLibrary';
 import MoodTracker from '@/components/engagement/MoodTracker';
 import WeeklyReport from '@/components/insights/WeeklyReport';
+import Sidebar from '@/components/layout/Sidebar';
 
 // ===== MAIN PAGE =====
 export default function ChatPage() {
@@ -38,6 +39,7 @@ export default function ChatPage() {
   // ===== CORE STATES =====
   const [chatType, setChatType] = useState<ChatType>('shared');
   const [activeTab, setActiveTab] = useState<ActiveTab>('chat');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [inputText, setInputText] = useState('');
   const [aiTyping, setAiTyping] = useState(false);
   const [selectedMood, setSelectedMood] = useState('');
@@ -533,10 +535,20 @@ export default function ChatPage() {
   // ===== RENDER =====
   return (
     <ErrorBoundary>
-      <div className="mobile-container">
-        <ToastContainer toasts={toasts} />
-        <OfflineBanner />
-        <InstallPrompt />
+      <div className="layout-container">
+        <Sidebar
+          profile={profile}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          onLogout={() => setConfirmDialog({ show: true, type: 'logout' })}
+          isOpen={sidebarOpen}
+          onToggle={() => setSidebarOpen(!sidebarOpen)}
+        />
+        
+        <div className="main-content">
+          <ToastContainer toasts={toasts} />
+          <OfflineBanner />
+          <InstallPrompt />
 
         {/* CONFIRM DIALOGS */}
         {confirmDialog.show && confirmDialog.type === 'clear' && (
@@ -610,6 +622,7 @@ export default function ChatPage() {
           activeTab={activeTab}
           onTabChange={setActiveTab}
           onLogout={() => setConfirmDialog({ show: true, type: 'logout' })}
+          onMenuClick={() => setSidebarOpen(true)}
         />
 
         {error && <div className="error-banner">{error}</div>}
@@ -795,6 +808,7 @@ export default function ChatPage() {
             />
           </>
         )}
+        </div>
       </div>
     </ErrorBoundary>
   );

@@ -6,6 +6,7 @@ import { MOODS } from '@/constants';
 import { getCharCounterClass } from '@/utils/format';
 import TextareaAutosize from 'react-textarea-autosize';
 import ToneAnalysis from '@/components/chat/ToneAnalysis';
+import { Smile, Mic, Image as ImageIcon, Send, X } from 'lucide-react';
 
 interface ChatInputProps {
   onSend: (text: string, mood: string) => void;
@@ -131,11 +132,11 @@ export default function ChatInput({
               border: 'none',
               color: 'var(--text-muted)',
               cursor: 'pointer',
-              fontSize: 16,
-              padding: '0 4px',
+              display: 'flex',
+              padding: '4px',
             }}
           >
-            ✕
+            <X size={16} />
           </button>
         </div>
       )}
@@ -195,27 +196,24 @@ export default function ChatInput({
             className="btn btn-icon btn-secondary"
             onClick={() => setShowMoods(!showMoods)}
             title="حال و هوا"
-            style={{ fontSize: 16 }}
           >
             {selectedMood
-              ? MOODS.find((m) => m.value === selectedMood)?.emoji || '😊'
-              : '😊'}
+              ? MOODS.find((m) => m.value === selectedMood)?.emoji || <Smile size={20} />
+              : <Smile size={20} />}
           </button>
           <button
             className="btn btn-icon btn-secondary"
             onClick={onVoiceSend}
             title="ضبط صدا"
-            style={{ fontSize: 16 }}
           >
-            🎤
+            <Mic size={20} />
           </button>
           <button
             className="btn btn-icon btn-secondary"
             onClick={onImageSend}
             title="ارسال تصویر"
-            style={{ fontSize: 16 }}
           >
-            📎
+            <ImageIcon size={20} />
           </button>
         </div>
 
@@ -264,14 +262,16 @@ export default function ChatInput({
           onClick={handleSend}
           disabled={disabled || !text.trim()}
           style={{
-            fontSize: 18,
             borderRadius: 14,
             transform: text.trim() ? 'scale(1)' : 'scale(0.9)',
             opacity: text.trim() ? 1 : 0.5,
             transition: 'all 0.2s ease',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
           }}
         >
-          ➤
+          <Send size={18} style={{ transform: 'rotate(-90deg)', marginRight: 2 }} />
         </button>
       </div>
     </div>

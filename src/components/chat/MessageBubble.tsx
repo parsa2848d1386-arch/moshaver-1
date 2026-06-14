@@ -7,6 +7,7 @@ import { formatRelativeTime } from '@/utils/format';
 import MarkdownRenderer from '@/components/common/MarkdownRenderer';
 import Zoom from 'react-medium-image-zoom';
 import 'react-medium-image-zoom/dist/styles.css';
+import { Copy, Reply, Pin, Smile, Tag, Search, Edit2, Trash2 } from 'lucide-react';
 
 interface MessageBubbleProps {
   message: Message;
@@ -235,47 +236,49 @@ export default function MessageBubble({
               fontSize: 10,
               color: 'var(--warning-color)',
               marginRight: 6,
+              display: 'inline-flex',
+              alignItems: 'center'
             }}
           >
-            📌
+            <Pin size={12} fill="currentColor" />
           </span>
         )}
 
         {/* Actions */}
-        <div className="message-actions" style={{ display: 'flex', gap: 2 }}>
+        <div className="message-actions" style={{ display: 'flex', gap: 4, padding: '4px' }}>
           <button className="copy-btn" onClick={() => onCopy(message.text)} title="کپی">
-            📋
+            <Copy size={14} />
           </button>
           <button className="copy-btn" onClick={() => onReply(message)} title="پاسخ">
-            ↩
+            <Reply size={14} />
           </button>
           <button
             className="copy-btn"
             onClick={() => onPin(message)}
             title={message.isPinned ? 'برداشتن پین' : 'پین'}
           >
-            📌
+            <Pin size={14} fill={message.isPinned ? "currentColor" : "none"} />
           </button>
           <button
             className="copy-btn"
             onClick={() => setShowReactions(!showReactions)}
             title="واکنش"
           >
-            😊
+            <Smile size={14} />
           </button>
           <button
             className="copy-btn"
             onClick={() => onTagMemory(message)}
             title="ثبت خاطره"
           >
-            🏷️
+            <Tag size={14} />
           </button>
           <button
             className="copy-btn"
             onClick={() => onPerspective(message)}
-            title="دیدگاه"
+            title="تحلیل دیدگاه"
           >
-            🔍
+            <Search size={14} />
           </button>
           {isOwn && (
             <>
@@ -284,14 +287,14 @@ export default function MessageBubble({
                 onClick={() => onEdit(message)}
                 title="ویرایش"
               >
-                ✏️
+                <Edit2 size={14} />
               </button>
               <button
                 className="copy-btn"
                 onClick={() => onDelete(message)}
                 title="حذف"
               >
-                🗑️
+                <Trash2 size={14} />
               </button>
             </>
           )}

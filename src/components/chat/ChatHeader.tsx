@@ -1,6 +1,7 @@
 'use client';
 
 import type { UserProfile, ActiveTab } from '@/types';
+import { Menu } from 'lucide-react';
 
 interface ChatHeaderProps {
   profile: UserProfile;
@@ -8,14 +9,8 @@ interface ChatHeaderProps {
   onTabChange: (tab: ActiveTab) => void;
   onLogout: () => void;
   partnerTyping?: boolean;
+  onMenuClick: () => void;
 }
-
-const TAB_ITEMS: { key: ActiveTab; icon: string; label: string }[] = [
-  { key: 'chat', icon: '💬', label: 'چت' },
-  { key: 'insights', icon: '📊', label: 'تحلیل' },
-  { key: 'engagement', icon: '💝', label: 'تعامل' },
-  { key: 'settings', icon: '⚙️', label: 'تنظیمات' },
-];
 
 export default function ChatHeader({
   profile,
@@ -23,29 +18,33 @@ export default function ChatHeader({
   onTabChange,
   onLogout,
   partnerTyping,
+  onMenuClick
 }: ChatHeaderProps) {
+  const getTabTitle = () => {
+    switch(activeTab) {
+      case 'chat': return 'گفتگو';
+      case 'insights': return 'تحلیل روانشناختی';
+      case 'engagement': return 'تعامل و تمرین‌ها';
+      case 'settings': return 'تنظیمات سیستم';
+      default: return 'مشاور همراه';
+    }
+  };
+
   return (
     <div className="chat-header">
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: 14,
-            background: 'var(--primary-glow)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 22,
-          }}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <button 
+          className="md:hidden btn btn-icon btn-secondary" 
+          onClick={onMenuClick}
+          style={{ border: 'none', background: 'transparent' }}
         >
-          {profile.avatar}
-        </div>
+          <Menu size={24} />
+        </button>
         <div>
-          <div style={{ fontSize: 15, fontWeight: 700 }}>
-            {profile.displayName}
+          <div style={{ fontSize: 16, fontWeight: 700 }}>
+            {getTabTitle()}
           </div>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
             {partnerTyping ? (
               <span style={{ color: 'var(--primary-color)' }}>
                 در حال تایپ
@@ -57,11 +56,12 @@ export default function ChatHeader({
               <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                 <span
                   style={{
-                    width: 7,
-                    height: 7,
+                    width: 8,
+                    height: 8,
                     borderRadius: '50%',
                     background: 'var(--success-color)',
                     display: 'inline-block',
+                    boxShadow: '0 0 8px var(--success-color)'
                   }}
                 />
                 آنلاین
@@ -69,39 +69,6 @@ export default function ChatHeader({
             )}
           </div>
         </div>
-      </div>
-
-      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-        {TAB_ITEMS.map((tab) => (
-          <button
-            key={tab.key}
-            className={`btn btn-icon ${
-              activeTab === tab.key ? '' : 'btn-secondary'
-            }`}
-            style={
-              activeTab === tab.key
-                ? {
-                    background:
-                      'linear-gradient(135deg, var(--primary-color), var(--primary-hover))',
-                    color: 'white',
-                    border: 'none',
-                  }
-                : {}
-            }
-            onClick={() => onTabChange(tab.key)}
-            title={tab.label}
-          >
-            {tab.icon}
-          </button>
-        ))}
-        <button
-          className="btn btn-icon btn-secondary"
-          onClick={onLogout}
-          title="خروج"
-          style={{ marginRight: 4 }}
-        >
-          🚪
-        </button>
       </div>
     </div>
   );
