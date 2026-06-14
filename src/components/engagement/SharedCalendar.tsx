@@ -103,33 +103,23 @@ export default function SharedCalendar({
   });
 
   return (
-    <div className="settings-container" style={{ gap: 14 }}>
+    <div className="flex flex-col gap-4">
       {/* Header */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-        }}
-      >
-        <h3 style={{ fontSize: 17, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div className="flex justify-between items-center mb-1">
+        <h3 className="text-base font-bold flex items-center gap-2 text-zinc-100">
           📅 تقویم مشترک
         </h3>
         <button
-          className="btn btn-icon btn-primary"
+          className="w-10 h-10 rounded-full bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center transition-all duration-200 shadow-md text-base"
           onClick={() => setShowAddForm(!showAddForm)}
-          style={{ fontSize: 16 }}
         >
-          ➕
+          {showAddForm ? '✖' : '➕'}
         </button>
       </div>
 
       {/* Add event form */}
       {showAddForm && (
-        <div
-          className="settings-section"
-          style={{ animation: 'fadeInUp 0.3s ease' }}
-        >
+        <div className="settings-section animate-fade-in">
           <div className="settings-section-title">🆕 رویداد جدید</div>
           <div className="input-group">
             <label className="input-label">عنوان</label>
@@ -153,31 +143,16 @@ export default function SharedCalendar({
           </div>
           <div className="input-group">
             <label className="input-label">نوع رویداد</label>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            <div className="flex gap-2 flex-wrap">
               {EVENT_TYPES.map((et) => (
                 <button
                   key={et.value}
                   onClick={() => setNewType(et.value)}
-                  style={{
-                    background:
-                      newType === et.value
-                        ? 'var(--primary-glow)'
-                        : 'var(--input-bg)',
-                    border:
-                      newType === et.value
-                        ? '1.5px solid var(--primary-color)'
-                        : '1.5px solid var(--card-border)',
-                    borderRadius: 10,
-                    padding: '6px 12px',
-                    fontSize: 12,
-                    cursor: 'pointer',
-                    color: 'var(--text-main)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 4,
-                    fontFamily: 'Vazirmatn, sans-serif',
-                    transition: 'all 0.2s ease',
-                  }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold cursor-pointer transition-all duration-300 ${
+                    newType === et.value
+                      ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400'
+                      : 'bg-zinc-900/40 border-white/5 text-zinc-400 hover:text-zinc-200'
+                  }`}
                 >
                   {et.emoji} {et.label}
                 </button>
@@ -185,10 +160,9 @@ export default function SharedCalendar({
             </div>
           </div>
           <button
-            className="btn btn-primary"
+            className="btn btn-primary mt-2 shadow-lg"
             onClick={handleAddEvent}
             disabled={!newTitle.trim() || !newDate}
-            style={{ marginTop: 8 }}
           >
             ✅ افزودن رویداد
           </button>
@@ -196,69 +170,38 @@ export default function SharedCalendar({
       )}
 
       {/* Calendar grid */}
-      <div className="settings-section">
+      <div className="settings-section p-4">
         {/* Month navigation */}
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: 16,
-          }}
-        >
+        <div className="flex justify-between items-center mb-4">
           <button
-            className="btn btn-icon btn-secondary"
+            className="w-9 h-9 rounded-xl bg-zinc-900/50 hover:bg-zinc-800 border border-white/5 hover:border-white/10 text-zinc-400 hover:text-zinc-200 flex items-center justify-center transition-colors text-xs"
             onClick={handlePrevMonth}
-            style={{ fontSize: 14 }}
           >
             ▶
           </button>
-          <span style={{ fontSize: 15, fontWeight: 700 }}>{monthName}</span>
+          <span className="text-sm font-bold text-zinc-200">{monthName}</span>
           <button
-            className="btn btn-icon btn-secondary"
+            className="w-9 h-9 rounded-xl bg-zinc-900/50 hover:bg-zinc-800 border border-white/5 hover:border-white/10 text-zinc-400 hover:text-zinc-200 flex items-center justify-center transition-colors text-xs"
             onClick={handleNextMonth}
-            style={{ fontSize: 14 }}
           >
             ◀
           </button>
         </div>
 
         {/* Weekday headers */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(7, 1fr)',
-            gap: 2,
-            marginBottom: 6,
-          }}
-        >
+        <div className="calendar-grid mb-1">
           {WEEK_DAYS.map((day) => (
-            <div
-              key={day}
-              style={{
-                textAlign: 'center',
-                fontSize: 11,
-                fontWeight: 600,
-                color: 'var(--text-muted)',
-                padding: '6px 0',
-              }}
-            >
+            <div key={day} className="calendar-header-cell">
               {day}
             </div>
           ))}
         </div>
 
         {/* Days grid */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(7, 1fr)',
-            gap: 2,
-          }}
-        >
+        <div className="calendar-grid">
           {/* Empty cells for days before first */}
           {Array.from({ length: firstDay }, (_, i) => (
-            <div key={`empty-${i}`} style={{ padding: 8 }} />
+            <div key={`empty-${i}`} />
           ))}
           {/* Day cells */}
           {Array.from({ length: daysInMonth }, (_, i) => {
@@ -272,49 +215,24 @@ export default function SharedCalendar({
             return (
               <div
                 key={day}
-                style={{
-                  textAlign: 'center',
-                  padding: '6px 2px',
-                  borderRadius: 10,
-                  fontSize: 13,
-                  fontWeight: isToday ? 700 : 400,
-                  background: isToday ? 'var(--primary-glow)' : 'transparent',
-                  border: isToday
-                    ? '1px solid var(--primary-color)'
-                    : '1px solid transparent',
-                  color: isToday ? 'var(--primary-color)' : 'var(--text-main)',
-                  position: 'relative',
-                  cursor: dayEvents.length > 0 ? 'pointer' : 'default',
-                  transition: 'all 0.2s ease',
-                }}
+                className={`calendar-day ${isToday ? 'today' : ''} ${dayEvents.length > 0 ? 'has-event' : ''}`}
               >
-                {day}
+                <span>{day}</span>
                 {/* Event dots */}
                 {dayEvents.length > 0 && (
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'center',
-                      gap: 2,
-                      marginTop: 2,
-                    }}
-                  >
+                  <div className="flex justify-center gap-0.5 mt-1">
                     {dayEvents.slice(0, 3).map((ev, idx) => (
                       <div
                         key={idx}
-                        style={{
-                          width: 5,
-                          height: 5,
-                          borderRadius: '50%',
-                          background:
-                            ev.type === 'anniversary'
-                              ? 'var(--secondary-color)'
-                              : ev.type === 'birthday'
-                                ? 'var(--warning-color)'
-                                : ev.type === 'therapy'
-                                  ? 'var(--success-color)'
-                                  : 'var(--primary-color)',
-                        }}
+                        className={`w-1 h-1 rounded-full ${
+                          ev.type === 'anniversary'
+                            ? 'bg-rose-450'
+                            : ev.type === 'birthday'
+                              ? 'bg-amber-400'
+                              : ev.type === 'therapy'
+                                ? 'bg-emerald-400'
+                                : 'bg-blue-400'
+                        }`}
                       />
                     ))}
                   </div>
@@ -329,35 +247,26 @@ export default function SharedCalendar({
       {monthEvents.length > 0 && (
         <div className="settings-section">
           <div className="settings-section-title">📋 رویدادهای این ماه</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div className="flex flex-col gap-2">
             {monthEvents.map((ev) => {
               const typeInfo = EVENT_TYPES.find((et) => et.value === ev.type);
               return (
                 <div
                   key={ev.id}
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '10px 14px',
-                    background: 'var(--input-bg)',
-                    borderRadius: 12,
-                    border: '1px solid var(--card-border)',
-                  }}
+                  className="flex justify-between items-center p-3 bg-zinc-900/40 border border-white/5 rounded-2xl"
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <span style={{ fontSize: 20 }}>{typeInfo?.emoji || '📌'}</span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl">{typeInfo?.emoji || '📌'}</span>
                     <div>
-                      <div style={{ fontSize: 14, fontWeight: 600 }}>{ev.title}</div>
-                      <div style={{ fontSize: 11, color: 'var(--text-muted)', direction: 'ltr' }}>
+                      <div className="text-sm font-semibold text-zinc-100">{ev.title}</div>
+                      <div className="text-[10px] text-zinc-500 font-medium direction-ltr text-right mt-0.5">
                         {new Date(ev.date).toLocaleDateString('fa-IR')}
                       </div>
                     </div>
                   </div>
                   <button
-                    className="btn btn-icon btn-secondary"
+                    className="w-8 h-8 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 flex items-center justify-center transition-colors border border-red-500/20 text-xs"
                     onClick={() => onDeleteEvent(ev.id || '')}
-                    style={{ fontSize: 12, width: 32, height: 32, minWidth: 32 }}
                   >
                     🗑️
                   </button>
@@ -369,14 +278,7 @@ export default function SharedCalendar({
       )}
 
       {monthEvents.length === 0 && !showAddForm && (
-        <div
-          style={{
-            textAlign: 'center',
-            padding: 24,
-            fontSize: 13,
-            color: 'var(--text-muted)',
-          }}
-        >
+        <div className="text-center p-6 text-xs text-zinc-500 bg-zinc-900/20 rounded-2xl border border-dashed border-white/5">
           📭 هیچ رویدادی برای این ماه ثبت نشده
         </div>
       )}

@@ -15,68 +15,36 @@ export default function GottmanRatio({ positive, negative }: GottmanRatioProps) 
   return (
     <div>
       {/* Ratio display */}
-      <div
-        style={{
-          textAlign: 'center',
-          marginBottom: 16,
-        }}
-      >
+      <div className="text-center mb-4">
         <div
-          style={{
-            fontSize: 28,
-            fontWeight: 800,
-            color: isHealthy ? 'var(--success-color)' : 'var(--danger-color)',
-            direction: 'ltr',
-          }}
+          className={`text-3xl font-extrabold transition-all duration-300 ${isHealthy ? 'text-emerald-400' : 'text-red-400'}`}
+          dir="ltr"
         >
           {ratio.toFixed(1)} : 1
         </div>
-        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
+        <div className="text-xs text-zinc-500 mt-1 font-medium">
           نسبت تعاملات مثبت به منفی
         </div>
       </div>
 
       {/* Bar chart */}
-      <div
-        style={{
-          display: 'flex',
-          gap: 0,
-          height: 36,
-          borderRadius: 10,
-          overflow: 'hidden',
-          marginBottom: 12,
-        }}
-      >
+      <div className="flex h-9 rounded-2xl overflow-hidden mb-4 border border-white/5 shadow-inner">
         {/* Positive bar */}
         <div
+          className="bg-emerald-500 flex items-center justify-center text-xs font-bold text-white transition-all duration-500 ease-out"
           style={{
             width: `${positivePercent}%`,
-            background: 'var(--success-color)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 12,
-            fontWeight: 700,
-            color: 'white',
-            transition: 'width 0.5s ease',
-            minWidth: positivePercent > 5 ? 'auto' : 0,
+            minWidth: positivePercent > 5 ? 'auto' : '0px',
           }}
         >
           {positivePercent > 15 && `${positive}`}
         </div>
         {/* Negative bar */}
         <div
+          className="bg-red-500 flex items-center justify-center text-xs font-bold text-white transition-all duration-500 ease-out"
           style={{
             width: `${negativePercent}%`,
-            background: 'var(--danger-color)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 12,
-            fontWeight: 700,
-            color: 'white',
-            transition: 'width 0.5s ease',
-            minWidth: negativePercent > 5 ? 'auto' : 0,
+            minWidth: negativePercent > 5 ? 'auto' : '0px',
           }}
         >
           {negativePercent > 15 && `${negative}`}
@@ -84,30 +52,16 @@ export default function GottmanRatio({ positive, negative }: GottmanRatioProps) 
       </div>
 
       {/* Labels */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <div
-            style={{
-              width: 10,
-              height: 10,
-              borderRadius: 3,
-              background: 'var(--success-color)',
-            }}
-          />
-          <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+      <div className="flex justify-between mb-4 px-1">
+        <div className="flex items-center gap-2">
+          <div className="w-2.5 h-2.5 rounded bg-emerald-500" />
+          <span className="text-xs text-zinc-400 font-semibold">
             مثبت ({positive})
           </span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <div
-            style={{
-              width: 10,
-              height: 10,
-              borderRadius: 3,
-              background: 'var(--danger-color)',
-            }}
-          />
-          <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+        <div className="flex items-center gap-2">
+          <div className="w-2.5 h-2.5 rounded bg-red-500" />
+          <span className="text-xs text-zinc-400 font-semibold">
             منفی ({negative})
           </span>
         </div>
@@ -115,30 +69,20 @@ export default function GottmanRatio({ positive, negative }: GottmanRatioProps) 
 
       {/* Status */}
       <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          padding: '10px 14px',
-          borderRadius: 12,
-          background: isHealthy ? 'var(--success-bg)' : 'var(--danger-bg)',
-          border: isHealthy
-            ? '1px solid rgba(52, 211, 153, 0.2)'
-            : '1px solid rgba(239, 68, 68, 0.2)',
-        }}
+        className={`flex items-start gap-3.5 p-4 rounded-2xl border ${
+          isHealthy
+            ? 'bg-emerald-500/10 border-emerald-500/20'
+            : 'bg-red-500/10 border-red-500/20'
+        }`}
       >
-        <span style={{ fontSize: 20 }}>{isHealthy ? '💚' : '💔'}</span>
+        <span className="text-2xl">{isHealthy ? '💚' : '💔'}</span>
         <div>
           <div
-            style={{
-              fontSize: 13,
-              fontWeight: 700,
-              color: isHealthy ? 'var(--success-color)' : 'var(--danger-color)',
-            }}
+            className={`text-sm font-bold ${isHealthy ? 'text-emerald-400' : 'text-red-400'}`}
           >
             {isHealthy ? 'وضعیت سالم' : 'نیاز به بهبود'}
           </div>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5, marginTop: 2 }}>
+          <div className="text-xs text-zinc-400 leading-relaxed mt-1 text-justify">
             {isHealthy
               ? 'نسبت تعاملات مثبت به منفی شما از حد مطلوب ۵:۱ بالاتره. آفرین! 🎉'
               : `نسبت فعلی ${ratio.toFixed(1)}:۱ هست. تلاش کنید به نسبت ۵:۱ نزدیک‌تر بشید.`}
@@ -147,15 +91,7 @@ export default function GottmanRatio({ positive, negative }: GottmanRatioProps) 
       </div>
 
       {/* Golden ratio reference */}
-      <div
-        style={{
-          marginTop: 12,
-          fontSize: 11,
-          color: 'var(--text-muted)',
-          textAlign: 'center',
-          lineHeight: 1.6,
-        }}
-      >
+      <div className="mt-4 text-[10px] text-zinc-500 text-center leading-relaxed font-medium">
         📖 طبق تحقیقات دکتر گاتمن، رابطه‌های سالم حداقل ۵ تعامل مثبت به ازای هر ۱ تعامل منفی دارند.
       </div>
     </div>

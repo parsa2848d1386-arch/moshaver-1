@@ -43,30 +43,23 @@ export default function GoalSetting({
   const completedGoals = safeGoals.filter((g) => g.status === 'completed');
 
   return (
-    <div className="settings-container" style={{ gap: 14 }}>
+    <div className="flex flex-col gap-4">
       {/* Header */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-        }}
-      >
-        <h3 style={{ fontSize: 17, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div className="flex justify-between items-center mb-1">
+        <h3 className="text-base font-bold flex items-center gap-2 text-zinc-100">
           🎯 اهداف مشترک
         </h3>
         <button
-          className="btn btn-icon btn-primary"
+          className="w-10 h-10 rounded-full bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center transition-all duration-200 shadow-md text-base"
           onClick={() => setShowForm(!showForm)}
-          style={{ fontSize: 16 }}
         >
-          ➕
+          {showForm ? '✖' : '➕'}
         </button>
       </div>
 
       {/* Add new goal form */}
       {showForm && (
-        <div className="settings-section" style={{ animation: 'fadeInUp 0.3s ease' }}>
+        <div className="settings-section animate-fade-in">
           <div className="settings-section-title">🆕 هدف جدید</div>
           <div className="input-group">
             <label className="input-label">عنوان هدف</label>
@@ -75,18 +68,17 @@ export default function GoalSetting({
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="مثلاً: هفته‌ای یه شب قرار"
+              placeholder="مثلاً: هفته‌ای یک بار شام بیرون"
             />
           </div>
           <div className="input-group">
             <label className="input-label">توضیحات</label>
             <textarea
-              className="input-field"
+              className="input-field resize-none text-sm"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="توضیح بیشتر..."
               rows={2}
-              style={{ resize: 'none' }}
             />
           </div>
           <div className="input-group">
@@ -100,10 +92,9 @@ export default function GoalSetting({
             />
           </div>
           <button
-            className="btn btn-primary"
+            className="btn btn-primary mt-2 shadow-lg"
             onClick={handleAdd}
             disabled={!title.trim()}
-            style={{ marginTop: 8 }}
           >
             ✅ افزودن هدف
           </button>
@@ -113,111 +104,62 @@ export default function GoalSetting({
       {/* Active goals */}
       {activeGoals.length > 0 && (
         <div>
-          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8 }}>
+          <div className="text-xs font-semibold text-zinc-500 mb-2.5 px-1">
             🟢 اهداف فعال ({activeGoals.length})
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div className="flex flex-col gap-3.5">
             {activeGoals.map((goal) => (
               <div
                 key={goal.id}
-                className="settings-section"
-                style={{ padding: 16 }}
+                className="goal-card"
               >
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'flex-start',
-                    marginBottom: 10,
-                  }}
-                >
+                <div className="goal-card-header">
                   <div>
-                    <h4 style={{ fontSize: 15, fontWeight: 700 }}>{goal.title}</h4>
+                    <h4 className="goal-card-title">{goal.title}</h4>
                     {goal.description && (
-                      <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4, lineHeight: 1.5 }}>
+                      <p className="goal-card-desc mt-1">
                         {goal.description}
                       </p>
                     )}
                     {goal.deadline && (
-                      <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+                      <p className="goal-card-meta mt-1">
                         📅 ددلاین: {new Date(goal.deadline).toLocaleDateString('fa-IR')}
                       </p>
                     )}
                   </div>
                   <button
-                    className="btn btn-icon btn-secondary"
+                    className="w-9 h-9 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 flex items-center justify-center transition-colors border border-emerald-500/20 text-sm"
                     onClick={() => onComplete(goal.id || '')}
-                    style={{ fontSize: 14, width: 36, height: 36, minWidth: 36 }}
                     title="تکمیل شد"
                   >
-                    ✅
+                    ✓
                   </button>
                 </div>
 
                 {/* Progress bar */}
                 <div>
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      fontSize: 11,
-                      color: 'var(--text-muted)',
-                      marginBottom: 4,
-                    }}
-                  >
+                  <div className="flex justify-between items-center text-xs text-zinc-400 mb-1.5 font-medium">
                     <span>پیشرفت</span>
-                    <span style={{ direction: 'ltr' }}>{goal.progress}%</span>
+                    <span className="font-semibold text-indigo-400" dir="ltr">{goal.progress}%</span>
                   </div>
-                  <div
-                    style={{
-                      width: '100%',
-                      height: 8,
-                      background: 'var(--card-border)',
-                      borderRadius: 4,
-                      overflow: 'hidden',
-                    }}
-                  >
+                  <div className="goal-progress">
                     <div
-                      style={{
-                        width: `${goal.progress}%`,
-                        height: '100%',
-                        background:
-                          goal.progress >= 80
-                            ? 'var(--success-color)'
-                            : goal.progress >= 50
-                              ? 'var(--warning-color)'
-                              : 'var(--primary-color)',
-                        borderRadius: 4,
-                        transition: 'width 0.5s ease',
-                      }}
+                      className="goal-progress-fill"
+                      style={{ width: `${goal.progress}%` }}
                     />
                   </div>
 
                   {/* Progress buttons */}
-                  <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+                  <div className="flex gap-2 mt-3.5">
                     {[25, 50, 75, 100].map((val) => (
                       <button
                         key={val}
                         onClick={() => onUpdate(goal.id || '', val)}
-                        style={{
-                          flex: 1,
-                          padding: '4px 0',
-                          borderRadius: 8,
-                          border: '1px solid var(--card-border)',
-                          background:
-                            goal.progress >= val
-                              ? 'var(--primary-glow)'
-                              : 'var(--input-bg)',
-                          color:
-                            goal.progress >= val
-                              ? 'var(--primary-color)'
-                              : 'var(--text-muted)',
-                          fontSize: 11,
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                          fontFamily: 'Vazirmatn, sans-serif',
-                          transition: 'all 0.2s ease',
-                        }}
+                        className={`flex-1 py-1.5 rounded-xl border text-xs font-semibold transition-all duration-300 ${
+                          goal.progress >= val
+                            ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400'
+                            : 'bg-zinc-900/40 border-white/5 text-zinc-500 hover:text-zinc-300'
+                        }`}
                       >
                         {val}%
                       </button>
@@ -233,34 +175,20 @@ export default function GoalSetting({
       {/* Completed goals */}
       {completedGoals.length > 0 && (
         <div>
-          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8 }}>
+          <div className="text-xs font-semibold text-zinc-500 mb-2 px-1">
             🏆 اهداف تکمیل‌شده ({completedGoals.length})
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div className="flex flex-col gap-2">
             {completedGoals.map((goal) => (
               <div
                 key={goal.id}
-                style={{
-                  padding: '10px 16px',
-                  background: 'var(--success-bg)',
-                  border: '1px solid rgba(52, 211, 153, 0.2)',
-                  borderRadius: 14,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 10,
-                }}
+                className="flex items-center gap-3 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl animate-fade-in"
               >
-                <span style={{ fontSize: 18 }}>🏆</span>
-                <span
-                  style={{
-                    fontSize: 14,
-                    color: 'var(--text-main)',
-                    textDecoration: 'line-through',
-                    opacity: 0.7,
-                  }}
-                >
+                <span className="text-lg">🏆</span>
+                <span className="text-sm text-zinc-300 line-through opacity-70 flex-1">
                   {goal.title}
                 </span>
+                <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-bold">تکمیل شده</span>
               </div>
             ))}
           </div>

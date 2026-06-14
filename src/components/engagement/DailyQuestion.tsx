@@ -23,56 +23,33 @@ export default function DailyQuestion({
   };
 
   return (
-    <div className="glass-panel" style={{ animation: 'fadeInUp 0.4s ease' }}>
+    <div className="glass-panel">
       {/* Header */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          marginBottom: 16,
-        }}
-      >
-        <span style={{ fontSize: 28 }}>💭</span>
+      <div className="flex items-center gap-3 mb-5">
+        <span className="text-2xl">💭</span>
         <div>
-          <h3 style={{ fontSize: 16, fontWeight: 700 }}>سؤال روزانه</h3>
-          <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-            هر روز یه سؤال برای نزدیک‌تر شدن
-          </p>
+          <h3 className="text-base font-bold text-zinc-100">سؤال روزانه</h3>
+          <p className="text-xs text-zinc-500">هر روز یه سؤال برای نزدیک‌تر شدن</p>
         </div>
       </div>
 
       {/* Question */}
-      <div
-        style={{
-          background: 'var(--primary-glow)',
-          border: '1px solid rgba(129, 140, 248, 0.2)',
-          borderRadius: 16,
-          padding: '16px 20px',
-          marginBottom: 16,
-          fontSize: 15,
-          fontWeight: 600,
-          lineHeight: 1.7,
-          color: 'var(--text-main)',
-          textAlign: 'center',
-        }}
-      >
+      <div className="bg-gradient-to-l from-indigo-500/10 to-purple-500/5 border border-indigo-500/15 rounded-2xl p-5 mb-5 text-base font-semibold leading-relaxed text-zinc-100 text-center shadow-inner">
         {question}
       </div>
 
       {/* Answer input */}
       {!submitted ? (
-        <div>
+        <div className="flex flex-col gap-3">
           <textarea
-            className="input-field"
+            className="input-field resize-none text-sm leading-relaxed"
             value={answer}
             onChange={(e) => setAnswer(e.target.value)}
             placeholder="جوابت رو بنویس..."
             rows={3}
-            style={{ resize: 'none', marginBottom: 12 }}
           />
           <button
-            className="btn btn-primary"
+            className="btn btn-primary shadow-lg"
             onClick={handleSubmit}
             disabled={!answer.trim()}
           >
@@ -80,68 +57,26 @@ export default function DailyQuestion({
           </button>
         </div>
       ) : (
-        <div>
+        <div className="flex flex-col gap-3">
           {/* Own answer */}
-          <div
-            style={{
-              background: 'var(--success-bg)',
-              border: '1px solid rgba(52, 211, 153, 0.2)',
-              borderRadius: 14,
-              padding: '12px 16px',
-              marginBottom: 12,
-              fontSize: 14,
-              lineHeight: 1.7,
-              color: 'var(--text-main)',
-            }}
-          >
-            <div
-              style={{
-                fontSize: 12,
-                fontWeight: 600,
-                color: 'var(--success-color)',
-                marginBottom: 6,
-              }}
-            >
-              ✅ جواب تو:
+          <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-4 text-sm leading-relaxed text-zinc-100">
+            <div className="text-xs font-bold text-emerald-400 mb-1.5 flex items-center gap-1.5">
+              <span>✅</span> جواب تو:
             </div>
             {answer}
           </div>
 
           {/* Partner answer */}
           {partnerAnswer ? (
-            <div
-              style={{
-                background: 'var(--card-bg)',
-                border: '1px solid var(--card-border)',
-                borderRadius: 14,
-                padding: '12px 16px',
-                fontSize: 14,
-                lineHeight: 1.7,
-                color: 'var(--text-main)',
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 12,
-                  fontWeight: 600,
-                  color: 'var(--secondary-color)',
-                  marginBottom: 6,
-                }}
-              >
-                💜 جواب پارتنرت:
+            <div className="bg-pink-500/10 border border-pink-500/20 rounded-2xl p-4 text-sm leading-relaxed text-zinc-100">
+              <div className="text-xs font-bold text-pink-400 mb-1.5 flex items-center gap-1.5">
+                <span>💜</span> جواب پارتنرت:
               </div>
               {partnerAnswer}
             </div>
           ) : (
-            <div
-              style={{
-                textAlign: 'center',
-                padding: 16,
-                fontSize: 13,
-                color: 'var(--text-muted)',
-              }}
-            >
-              ⏳ منتظر جواب پارتنرت...
+            <div className="text-center p-5 text-sm text-zinc-500 bg-zinc-900/20 rounded-2xl border border-dashed border-white/5">
+              ⏳ منتظر پاسخ پارتنرت باش... بعد از ارسال پاسخ او، جوابش اینجا نمایش داده میشه.
             </div>
           )}
         </div>

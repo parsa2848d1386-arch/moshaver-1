@@ -101,7 +101,7 @@ export default function SettingsPanel({
         </div>
 
         {aiModel === 'custom' && (
-          <div style={{ marginTop: 12 }}>
+          <div className="mt-3">
             <div className="input-group">
               <label className="input-label">نام مدل دلخواه</label>
               <input
@@ -131,7 +131,7 @@ export default function SettingsPanel({
             dir="ltr"
           />
         </div>
-        <p style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6, marginTop: 4 }}>
+        <p className="text-[11px] text-zinc-500 leading-relaxed mt-1.5 px-1">
           اختیاری — اگه کلید خودت رو داری وارد کن تا سریع‌تر جواب بگیری.
         </p>
       </div>
@@ -169,8 +169,8 @@ export default function SettingsPanel({
           </label>
         </div>
         {dndEnabled && (
-          <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
-            <div className="input-group" style={{ flex: 1 }}>
+          <div className="flex gap-3 mt-3">
+            <div className="input-group flex-1">
               <label className="input-label">از ساعت</label>
               <input
                 className="input-field"
@@ -180,7 +180,7 @@ export default function SettingsPanel({
                 dir="ltr"
               />
             </div>
-            <div className="input-group" style={{ flex: 1 }}>
+            <div className="input-group flex-1">
               <label className="input-label">تا ساعت</label>
               <input
                 className="input-field"
@@ -227,11 +227,11 @@ export default function SettingsPanel({
       </button>
 
       {/* Data Management */}
-      <div style={{ display: 'flex', gap: 10 }}>
-        <button className="btn btn-secondary" onClick={onExport} style={{ flex: 1 }}>
+      <div className="flex gap-3">
+        <button className="btn btn-secondary flex-1" onClick={onExport}>
           📤 خروجی گرفتن
         </button>
-        <button className="btn btn-danger" onClick={onClearChat} style={{ flex: 1 }}>
+        <button className="btn btn-danger flex-1" onClick={onClearChat}>
           🗑️ پاک کردن چت
         </button>
       </div>

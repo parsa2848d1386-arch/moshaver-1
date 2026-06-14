@@ -524,10 +524,19 @@ export default function ChatPage() {
   // ===== LOADING =====
   if (loading) {
     return (
-      <div className="w-full h-screen bg-[#09090B] flex items-center justify-center">
-        <div className="flex flex-col items-center">
-          <div className="w-12 h-12 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin mb-4" />
-          <p className="text-zinc-500 text-sm">در حال بارگذاری...</p>
+      <div className="w-full h-screen bg-[#09090B] flex items-center justify-center relative overflow-hidden">
+        {/* Background Glowing Aura */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none z-0 opacity-20">
+          <div className="absolute -top-[20%] -left-[10%] w-[80vw] h-[80vw] rounded-full blur-[120px] bg-gradient-to-br from-indigo-600 via-purple-600 to-transparent" />
+          <div className="absolute -bottom-[20%] -right-[10%] w-[80vw] h-[80vw] rounded-full blur-[120px] bg-gradient-to-bl from-rose-600 via-pink-650 to-transparent" />
+        </div>
+        <div className="flex flex-col items-center z-10">
+          <div className="relative w-16 h-16 mb-6">
+            <div className="absolute inset-0 rounded-full border-4 border-indigo-500/10" />
+            <div className="absolute inset-0 rounded-full border-4 border-t-indigo-500 animate-spin" />
+            <div className="absolute inset-2 rounded-full border-4 border-b-rose-500 animate-spin [animation-duration:1.5s]" />
+          </div>
+          <p className="text-zinc-200 font-bold text-sm tracking-wide bg-gradient-to-r from-zinc-200 via-zinc-400 to-zinc-200 bg-clip-text text-transparent animate-pulse">در حال بارگذاری ایمن...</p>
         </div>
       </div>
     );
@@ -574,13 +583,18 @@ export default function ChatPage() {
         </div>
 
         {/* Header */}
-        <header className="w-full px-4 py-3 flex justify-between items-center z-30 shrink-0 bg-[#09090B]/80 backdrop-blur-md border-b border-white/5">
-          <button 
-            onClick={() => setSidebarOpen(true)}
-            className="p-2 rounded-full hover:bg-white/10 transition-colors text-zinc-300"
-          >
-            <Menu size={24} />
-          </button>
+        <header className="w-full px-4 py-3 flex justify-between items-center z-30 shrink-0 bg-[#09090B]/60 backdrop-blur-xl border-b border-white/5 shadow-lg">
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => setSidebarOpen(true)}
+              className="p-2.5 rounded-2xl bg-zinc-900/50 hover:bg-zinc-800 text-zinc-300 transition-all border border-white/5 active:scale-95 cursor-pointer"
+            >
+              <Menu size={20} />
+            </button>
+            <span className="hidden sm:inline-block text-sm font-black bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent">
+              مشاور همراه 💜
+            </span>
+          </div>
 
           <GeminiModelSelector 
             selectedModel={selectedModel}
@@ -589,7 +603,9 @@ export default function ChatPage() {
             onSelectThinkingLevel={() => {}}
           />
 
-          <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold cursor-pointer hover:opacity-90 transition-opacity">
+          <div className={`w-10 h-10 rounded-full bg-gradient-to-tr ${
+            profile.role === 'parsa' ? 'from-blue-600 to-indigo-500 shadow-md shadow-blue-500/20' : 'from-rose-600 to-pink-500 shadow-md shadow-rose-500/20'
+          } flex items-center justify-center text-white font-bold cursor-pointer hover:scale-105 transition-transform border border-white/10`}>
             {profile.avatar || 'P'}
           </div>
         </header>
@@ -831,15 +847,23 @@ export default function ChatPage() {
                 )}
 
                 {/* ROOM TABS */}
-                <div className="flex bg-zinc-900/50 backdrop-blur-md rounded-xl p-1 mb-6 border border-white/5">
+                <div className="flex bg-zinc-950/40 backdrop-blur-md rounded-2xl p-1.5 mb-5 border border-white/5 shadow-inner">
                   <button
-                    className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${chatType === 'shared' ? 'bg-zinc-800 text-white shadow' : 'text-zinc-500 hover:text-zinc-300'}`}
+                    className={`flex-1 py-2.5 text-xs sm:text-sm font-bold rounded-xl transition-all duration-300 cursor-pointer flex items-center justify-center gap-2 ${
+                      chatType === 'shared' 
+                        ? 'bg-gradient-to-r from-blue-600/10 to-indigo-600/10 border border-blue-500/20 text-blue-400 shadow-[inset_0_0_12px_rgba(99,102,241,0.08)]' 
+                        : 'text-zinc-500 hover:text-zinc-300 border border-transparent'
+                    }`}
                     onClick={() => setChatType('shared')}
                   >
                     👥 جلسه دو نفره
                   </button>
                   <button
-                    className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${chatType === 'private' ? 'bg-zinc-800 text-white shadow' : 'text-zinc-500 hover:text-zinc-300'}`}
+                    className={`flex-1 py-2.5 text-xs sm:text-sm font-bold rounded-xl transition-all duration-300 cursor-pointer flex items-center justify-center gap-2 ${
+                      chatType === 'private' 
+                        ? 'bg-gradient-to-r from-rose-600/10 to-pink-600/10 border border-rose-500/20 text-pink-400 shadow-[inset_0_0_12px_rgba(236,72,153,0.08)]' 
+                        : 'text-zinc-500 hover:text-zinc-300 border border-transparent'
+                    }`}
                     onClick={() => setChatType('private')}
                   >
                     🔒 گفتگوی خصوصی

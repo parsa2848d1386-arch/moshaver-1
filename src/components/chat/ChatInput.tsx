@@ -121,14 +121,14 @@ export default function ChatInput({
 
       <motion.div
         animate={{
-          boxShadow: isFocused ? '0 8px 32px rgba(59, 130, 246, 0.15)' : '0 4px 12px rgba(0,0,0,0.2)',
-          borderColor: isFocused ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.05)'
+          boxShadow: isFocused ? '0 10px 30px rgba(99, 102, 241, 0.15)' : '0 4px 16px rgba(0,0,0,0.3)',
+          borderColor: isFocused ? 'rgba(99, 102, 241, 0.3)' : 'rgba(255,255,255,0.06)'
         }}
-        className="flex items-end gap-2 bg-zinc-900/80 backdrop-blur-2xl border rounded-[32px] p-2 pl-3 transition-colors"
+        className="flex items-end gap-2 bg-[#12121a]/90 backdrop-blur-3xl border rounded-[32px] p-2 pl-3 transition-colors shadow-2xl"
       >
         <button
           onClick={() => setShowBottomSheet(true)}
-          className="flex-shrink-0 w-10 h-10 mb-1 mr-1 rounded-full bg-zinc-800 hover:bg-zinc-700 flex items-center justify-center text-zinc-300 transition-colors border border-white/5"
+          className="flex-shrink-0 w-10 h-10 mb-1 mr-1 rounded-full bg-zinc-800/80 hover:bg-zinc-700 flex items-center justify-center text-zinc-300 transition-colors border border-white/5"
         >
           <Plus size={20} />
         </button>
@@ -198,8 +198,8 @@ export default function ChatInput({
             />
             <motion.div
               initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed bottom-0 left-0 right-0 bg-zinc-900 rounded-t-3xl border-t border-white/10 z-50 flex flex-col max-h-[85vh] shadow-2xl"
+              transition={{ type: 'spring', damping: 26, stiffness: 220 }}
+              className="fixed bottom-0 left-0 right-0 bg-[#0c0c12]/95 backdrop-blur-3xl rounded-t-3xl border-t border-white/5 z-50 flex flex-col max-h-[85vh] shadow-2xl"
             >
               <div className="w-full flex justify-center py-3" onClick={() => setShowBottomSheet(false)}>
                 <div className="w-12 h-1.5 rounded-full bg-zinc-700 cursor-pointer" />
@@ -213,11 +213,11 @@ export default function ChatInput({
                       <button
                         key={mood.label}
                         onClick={() => setSelectedMood(selectedMood === mood.value ? '' : mood.value)}
-                        className={`flex items-center gap-2 px-4 py-2.5 rounded-full border transition-colors whitespace-nowrap text-sm font-medium ${
-                          selectedMood === mood.value ? 'bg-blue-500/20 border-blue-500 text-blue-400' : 'bg-zinc-800 border-white/5 hover:bg-zinc-700 text-zinc-200'
+                        className={`flex items-center gap-2 px-4 py-2.5 rounded-full border transition-all duration-300 whitespace-nowrap text-xs font-semibold ${
+                          selectedMood === mood.value ? 'bg-indigo-500/15 border-indigo-500/30 text-indigo-400' : 'bg-zinc-900/50 border-white/5 hover:bg-zinc-800/80 hover:border-white/10 text-zinc-350'
                         }`}
                       >
-                        <span className="text-lg">{mood.emoji}</span>
+                        <span className="text-base">{mood.emoji}</span>
                         {mood.label}
                       </button>
                     ))}
@@ -225,22 +225,22 @@ export default function ChatInput({
                 </div>
 
                 <div className="flex flex-col gap-2">
-                  <button onClick={() => { onImageSend(); setShowBottomSheet(false); }} className="flex items-center gap-4 p-4 rounded-2xl hover:bg-zinc-800 transition-colors text-left">
-                    <div className="w-10 h-10 rounded-full bg-blue-500/10 text-blue-400 flex items-center justify-center">
+                  <button onClick={() => { onImageSend(); setShowBottomSheet(false); }} className="flex items-center gap-4.5 p-4 rounded-2xl hover:bg-zinc-900/40 transition-colors text-right border border-transparent hover:border-white/5">
+                    <div className="w-10 h-10 rounded-full bg-blue-500/10 text-blue-400 flex items-center justify-center shadow-md">
                       <ImageIcon size={20} />
                     </div>
-                    <div className="flex flex-col">
-                      <span className="text-zinc-200 font-medium">ارسال عکس</span>
-                      <span className="text-zinc-500 text-sm">انتخاب عکس از گالری</span>
+                    <div className="flex flex-col items-start">
+                      <span className="text-zinc-200 text-sm font-semibold">ارسال عکس</span>
+                      <span className="text-zinc-500 text-[11px] mt-0.5">انتخاب عکس از گالری</span>
                     </div>
                   </button>
-                  <button onClick={() => { onVoiceSend(); setShowBottomSheet(false); }} className="flex items-center gap-4 p-4 rounded-2xl hover:bg-zinc-800 transition-colors text-left">
-                    <div className="w-10 h-10 rounded-full bg-purple-500/10 text-purple-400 flex items-center justify-center">
+                  <button onClick={() => { onVoiceSend(); setShowBottomSheet(false); }} className="flex items-center gap-4.5 p-4 rounded-2xl hover:bg-zinc-900/40 transition-colors text-right border border-transparent hover:border-white/5">
+                    <div className="w-10 h-10 rounded-full bg-purple-500/10 text-purple-400 flex items-center justify-center shadow-md">
                       <Mic size={20} />
                     </div>
-                    <div className="flex flex-col flex-1">
-                      <span className="text-zinc-200 font-medium">ارسال صدای ضبط شده</span>
-                      <span className="text-zinc-500 text-sm">پیام صوتی خود را ضبط کنید</span>
+                    <div className="flex flex-col items-start flex-1">
+                      <span className="text-zinc-200 text-sm font-semibold">ارسال صدای ضبط شده</span>
+                      <span className="text-zinc-500 text-[11px] mt-0.5">پیام صوتی خود را ضبط کنید</span>
                     </div>
                   </button>
                 </div>

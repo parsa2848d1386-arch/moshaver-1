@@ -26,97 +26,46 @@ export default function MoodTracker({
   const last7Days = moodHistory.slice(-7);
 
   return (
-    <div className="glass-panel" style={{ animation: 'fadeInUp 0.4s ease' }}>
+    <div className="glass-panel">
       {/* Header */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          marginBottom: 16,
-        }}
-      >
-        <span style={{ fontSize: 24 }}>🎭</span>
+      <div className="flex items-center gap-3 mb-5">
+        <span className="text-2xl">🎭</span>
         <div>
-          <h3 style={{ fontSize: 16, fontWeight: 700 }}>حال و هوای من</h3>
-          <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-            الان چه حسی داری؟
-          </p>
+          <h3 className="text-base font-bold text-zinc-100">حال و هوای من</h3>
+          <p className="text-xs text-zinc-500">الان چه حسی داری؟</p>
         </div>
       </div>
 
       {/* Current mood display */}
       {selectedMood && (
-        <div
-          style={{
-            textAlign: 'center',
-            marginBottom: 16,
-            padding: 16,
-            background: 'var(--primary-glow)',
-            borderRadius: 16,
-            border: '1px solid rgba(129, 140, 248, 0.2)',
-          }}
-        >
-          <div style={{ fontSize: 48, marginBottom: 6 }}>
+        <div className="text-center mb-5 p-4 bg-gradient-to-br from-indigo-500/10 to-purple-500/5 rounded-2xl border border-indigo-500/15 shadow-inner">
+          <div className="text-5xl mb-2">
             {getMoodEmoji(selectedMood)}
           </div>
-          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-main)' }}>
+          <div className="text-sm font-bold text-indigo-400">
             {MOODS.find((m) => m.value === selectedMood)?.label || selectedMood}
           </div>
         </div>
       )}
 
       {/* Mood selection grid */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
-          gap: 8,
-          marginBottom: 16,
-        }}
-      >
+      <div className="grid grid-cols-4 gap-2 mb-5">
         {MOODS.map((mood) => {
           const isSelected = selectedMood === mood.value;
           return (
             <button
               key={mood.value}
               onClick={() => onMoodChange(mood.value)}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: 4,
-                padding: '10px 6px',
-                borderRadius: 14,
-                border: isSelected
-                  ? '2px solid var(--primary-color)'
-                  : '2px solid transparent',
-                background: isSelected
-                  ? 'var(--primary-glow)'
-                  : 'var(--input-bg)',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                fontFamily: 'Vazirmatn, sans-serif',
-              }}
+              className={`flex flex-col items-center gap-1.5 py-3 px-1 rounded-2xl border transition-all duration-300 ${
+                isSelected
+                  ? 'border-indigo-500 bg-indigo-500/15 text-indigo-400 shadow-md scale-105'
+                  : 'border-white/5 bg-zinc-900/40 hover:bg-zinc-800/80 hover:border-white/10 text-zinc-400 hover:text-zinc-200'
+              }`}
             >
-              <span
-                style={{
-                  fontSize: 28,
-                  transition: 'transform 0.2s ease',
-                  transform: isSelected ? 'scale(1.15)' : 'scale(1)',
-                }}
-              >
+              <span className={`text-3xl transition-transform duration-300 ${isSelected ? 'scale-110' : 'scale-100'}`}>
                 {mood.emoji}
               </span>
-              <span
-                style={{
-                  fontSize: 10,
-                  fontWeight: 600,
-                  color: isSelected
-                    ? 'var(--primary-color)'
-                    : 'var(--text-muted)',
-                }}
-              >
+              <span className={`text-[10px] font-bold ${isSelected ? 'text-indigo-400' : 'text-zinc-500'}`}>
                 {mood.label}
               </span>
             </button>
@@ -127,78 +76,26 @@ export default function MoodTracker({
       {/* Weekly mood history */}
       {last7Days.length > 0 && (
         <div>
-          <div
-            style={{
-              fontSize: 12,
-              fontWeight: 600,
-              color: 'var(--text-muted)',
-              marginBottom: 8,
-            }}
-          >
-            📅 هفته گذشته:
+          <div className="text-xs font-semibold text-zinc-500 mb-3 px-1">
+            📅 سابقه روحی هفته گذشته:
           </div>
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-around',
-              gap: 4,
-            }}
-          >
+          <div className="flex justify-around gap-2 bg-zinc-900/30 p-3.5 rounded-2xl border border-white/5">
             {last7Days.map((entry, idx) => {
               const dayName = new Intl.DateTimeFormat('fa-IR', {
                 weekday: 'narrow',
               }).format(new Date(entry.date));
               return (
-                <div
-                  key={idx}
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: 4,
-                  }}
-                >
-                  <span style={{ fontSize: 18 }}>{getMoodEmoji(entry.mood)}</span>
-                  <span
-                    style={{
-                      fontSize: 9,
-                      color: 'var(--text-muted)',
-                      fontWeight: 500,
-                    }}
-                  >
-                    {dayName}
-                  </span>
+                <div key={idx} className="flex flex-col items-center gap-1.5">
+                  <span className="text-xl hover:scale-110 transition-transform">{getMoodEmoji(entry.mood)}</span>
+                  <span className="text-[10px] text-zinc-500 font-medium">{dayName}</span>
                 </div>
               );
             })}
             {/* Fill remaining days with empty slots */}
             {Array.from({ length: Math.max(0, 7 - last7Days.length) }, (_, i) => (
-              <div
-                key={`empty-${i}`}
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: 4,
-                }}
-              >
-                <span
-                  style={{
-                    width: 18,
-                    height: 18,
-                    borderRadius: '50%',
-                    background: 'var(--card-border)',
-                    display: 'block',
-                  }}
-                />
-                <span
-                  style={{
-                    fontSize: 9,
-                    color: 'var(--text-muted)',
-                  }}
-                >
-                  —
-                </span>
+              <div key={`empty-${i}`} className="flex flex-col items-center gap-1.5">
+                <span className="w-5 h-5 rounded-full bg-zinc-800/50 border border-white/5 flex items-center justify-center text-[10px] text-zinc-600">•</span>
+                <span className="text-[9px] text-zinc-650 font-medium">—</span>
               </div>
             ))}
           </div>
@@ -206,14 +103,7 @@ export default function MoodTracker({
       )}
 
       {last7Days.length === 0 && (
-        <div
-          style={{
-            textAlign: 'center',
-            fontSize: 12,
-            color: 'var(--text-muted)',
-            padding: 8,
-          }}
-        >
+        <div className="text-center text-xs text-zinc-500 py-3">
           هنوز سابقه‌ای ثبت نشده — هر روز حالتو ثبت کن 💜
         </div>
       )}

@@ -28,9 +28,9 @@ interface WeeklyReportProps {
 export default function WeeklyReport({ report }: WeeklyReportProps) {
   if (!report) {
     return (
-      <div className="settings-section" style={{ textAlign: 'center', padding: 32 }}>
-        <div style={{ fontSize: 40, opacity: 0.5, marginBottom: 16 }}>📊</div>
-        <p style={{ color: 'var(--text-muted)' }}>گزارشی برای نمایش وجود ندارد. روی دکمه زیر کلیک کنید تا گزارش تولید شود.</p>
+      <div className="settings-section text-center p-8">
+        <div className="text-4xl opacity-50 mb-4">📊</div>
+        <p className="text-zinc-500 text-sm">گزارشی برای نمایش وجود ندارد. روی دکمه زیر کلیک کنید تا گزارش تولید شود.</p>
       </div>
     );
   }
@@ -46,23 +46,25 @@ export default function WeeklyReport({ report }: WeeklyReportProps) {
   const offset = circumference - (report.healthScore / 100) * circumference;
 
   return (
-    <div className="settings-container" style={{ gap: 16 }}>
+    <div className="flex flex-col gap-4">
       {/* Header */}
-      <div style={{ textAlign: 'center', marginBottom: 4 }}>
-        <h3 style={{ fontSize: 18, fontWeight: 800 }}>📊 گزارش هفتگی</h3>
-        <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
+      <div className="text-center mb-1">
+        <h3 className="text-base font-bold text-zinc-100 flex items-center justify-center gap-2">
+          📊 گزارش هفتگی رابطه
+        </h3>
+        <p className="text-xs text-zinc-500 mt-1">
           خلاصه وضعیت رابطه‌تون در هفته گذشته
         </p>
       </div>
 
       {/* Health Score - Circular progress */}
-      <div className="settings-section" style={{ textAlign: 'center', padding: 24 }}>
-        <div style={{ position: 'relative', display: 'inline-block', marginBottom: 12 }}>
+      <div className="settings-section flex flex-col items-center justify-center p-6 bg-gradient-to-b from-[#12121a] to-zinc-950/40">
+        <div className="relative w-32 h-32 flex items-center justify-center mb-3">
           <svg
             width="128"
             height="128"
             viewBox="0 0 128 128"
-            style={{ transform: 'rotate(-90deg)' }}
+            className="-rotate-90 filter drop-shadow-[0_0_12px_rgba(99,102,241,0.15)]"
           >
             {/* Background circle */}
             <circle
@@ -71,7 +73,7 @@ export default function WeeklyReport({ report }: WeeklyReportProps) {
               r="54"
               fill="none"
               stroke="var(--card-border)"
-              strokeWidth="8"
+              strokeWidth="7"
             />
             {/* Progress circle */}
             <circle
@@ -80,77 +82,50 @@ export default function WeeklyReport({ report }: WeeklyReportProps) {
               r="54"
               fill="none"
               stroke={scoreColor}
-              strokeWidth="8"
+              strokeWidth="7"
               strokeLinecap="round"
               strokeDasharray={circumference}
               strokeDashoffset={offset}
-              style={{ transition: 'stroke-dashoffset 1s ease, stroke 0.3s ease' }}
+              className="transition-all duration-1000 ease-out"
             />
           </svg>
           {/* Score in center */}
-          <div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
+          <div className="absolute flex flex-col items-center justify-center text-center">
             <span
-              style={{
-                fontSize: 32,
-                fontWeight: 800,
-                color: scoreColor,
-                lineHeight: 1,
-              }}
+              className="text-3xl font-extrabold"
+              style={{ color: scoreColor }}
             >
               {report.healthScore}
             </span>
-            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+            <span className="text-[10px] text-zinc-500 font-bold uppercase mt-0.5">
               از ۱۰۰
             </span>
           </div>
         </div>
-        <div style={{ fontSize: 15, fontWeight: 700 }}>
+        <div className="text-sm font-bold text-zinc-200 mt-1">
           {report.healthScore >= 70
-            ? '💚 وضعیت سالم'
+            ? '💚 وضعیت سالم و پرانرژی'
             : report.healthScore >= 40
-              ? '🟡 نیاز به توجه'
-              : '🔴 نیاز به کمک'}
+              ? '🟡 نیاز به گفتگو و توجه بیشتر'
+              : '🔴 هشدار! نیاز به صلح و تفاهم فوری'}
         </div>
       </div>
 
       {/* Interaction counts */}
-      <div style={{ display: 'flex', gap: 10 }}>
-        <div
-          className="settings-section"
-          style={{
-            flex: 1,
-            textAlign: 'center',
-            padding: 16,
-          }}
-        >
-          <div style={{ fontSize: 28, marginBottom: 4 }}>💚</div>
-          <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--success-color)' }}>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="settings-section text-center p-4 bg-emerald-500/5 border-emerald-500/10">
+          <div className="text-2xl mb-1">💚</div>
+          <div className="text-2xl font-extrabold text-emerald-400">
             {report.positiveCount}
           </div>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>تعامل مثبت</div>
+          <div className="text-xs text-zinc-500 font-medium">تعامل مثبت</div>
         </div>
-        <div
-          className="settings-section"
-          style={{
-            flex: 1,
-            textAlign: 'center',
-            padding: 16,
-          }}
-        >
-          <div style={{ fontSize: 28, marginBottom: 4 }}>❤️‍🩹</div>
-          <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--danger-color)' }}>
+        <div className="settings-section text-center p-4 bg-red-500/5 border-red-500/10">
+          <div className="text-2xl mb-1">❤️‍🩹</div>
+          <div className="text-2xl font-extrabold text-red-400">
             {report.negativeCount}
           </div>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>تعامل منفی</div>
+          <div className="text-xs text-zinc-500 font-medium">تعامل منفی</div>
         </div>
       </div>
 
@@ -166,21 +141,15 @@ export default function WeeklyReport({ report }: WeeklyReportProps) {
       {/* Positive Highlights */}
       {report.positiveHighlights && report.positiveHighlights.length > 0 && (
         <div className="settings-section">
-          <div className="settings-section-title">🌟 نکات مثبت</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div className="settings-section-title text-emerald-400">🌟 نکات مثبت هفته</div>
+          <div className="flex flex-col gap-2">
             {report.positiveHighlights.map((item, i) => (
               <div
                 key={i}
-                style={{
-                  fontSize: 13,
-                  lineHeight: 1.6,
-                  color: 'var(--text-secondary)',
-                  display: 'flex',
-                  gap: 6,
-                }}
+                className="text-sm leading-relaxed text-zinc-300 flex items-start gap-2"
               >
-                <span style={{ color: 'var(--success-color)' }}>✓</span>
-                {item}
+                <span className="text-emerald-400 select-none">✓</span>
+                <span>{item}</span>
               </div>
             ))}
           </div>
@@ -190,21 +159,15 @@ export default function WeeklyReport({ report }: WeeklyReportProps) {
       {/* Unresolved Issues */}
       {report.unresolvedIssues && report.unresolvedIssues.length > 0 && (
         <div className="settings-section">
-          <div className="settings-section-title">⚠️ مسائل حل‌نشده</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div className="settings-section-title text-amber-400">⚠️ مسائل حل‌نشده</div>
+          <div className="flex flex-col gap-2">
             {report.unresolvedIssues.map((item, i) => (
               <div
                 key={i}
-                style={{
-                  fontSize: 13,
-                  lineHeight: 1.6,
-                  color: 'var(--text-secondary)',
-                  display: 'flex',
-                  gap: 6,
-                }}
+                className="text-sm leading-relaxed text-zinc-300 flex items-start gap-2"
               >
-                <span style={{ color: 'var(--warning-color)' }}>●</span>
-                {item}
+                <span className="text-amber-500 select-none">●</span>
+                <span>{item}</span>
               </div>
             ))}
           </div>
@@ -213,36 +176,18 @@ export default function WeeklyReport({ report }: WeeklyReportProps) {
 
       {/* Summary */}
       <div className="settings-section">
-        <div className="settings-section-title">📝 خلاصه</div>
-        <p
-          style={{
-            fontSize: 14,
-            lineHeight: 1.8,
-            color: 'var(--text-secondary)',
-          }}
-        >
+        <div className="settings-section-title">📝 خلاصه تحلیل کل</div>
+        <p className="text-sm leading-relaxed text-zinc-300 text-justify">
           {report.summary}
         </p>
       </div>
 
       {/* Suggested Exercise */}
-      <div
-        className="settings-section"
-        style={{
-          background: 'var(--primary-glow)',
-          border: '1px solid rgba(129, 140, 248, 0.2)',
-        }}
-      >
-        <div className="settings-section-title" style={{ color: 'var(--primary-color)' }}>
-          💡 تمرین پیشنهادی هفته آینده
+      <div className="settings-section bg-gradient-to-l from-indigo-500/10 to-purple-500/5 border-indigo-500/15 p-5">
+        <div className="settings-section-title text-indigo-400 mb-2">
+          💡 تمرین پیشنهادی برای هفته آینده
         </div>
-        <p
-          style={{
-            fontSize: 14,
-            lineHeight: 1.7,
-            color: 'var(--text-main)',
-          }}
-        >
+        <p className="text-sm leading-relaxed text-zinc-200 text-justify">
           {report.suggestedExercise}
         </p>
       </div>

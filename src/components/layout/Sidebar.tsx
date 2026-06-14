@@ -43,8 +43,8 @@ export default function Sidebar({ profile, activeTab, onTabChange, onLogout, isO
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed top-0 right-0 bottom-0 w-[300px] bg-zinc-950/95 backdrop-blur-xl border-l border-white/10 z-50 flex flex-col shadow-2xl"
+              transition={{ type: 'spring', damping: 26, stiffness: 220 }}
+              className="fixed top-0 right-0 bottom-0 w-[300px] bg-[#09090b]/90 backdrop-blur-3xl border-l border-white/5 z-50 flex flex-col shadow-2xl"
               dir="rtl"
             >
               {/* Header / New Chat */}
@@ -54,20 +54,20 @@ export default function Sidebar({ profile, activeTab, onTabChange, onLogout, isO
                     onTabChange('chat');
                     if (window.innerWidth < 768) onToggle();
                   }}
-                  className="flex items-center gap-3 bg-zinc-900 hover:bg-zinc-800 text-zinc-100 p-3 rounded-2xl transition-colors border border-white/5"
+                  className="flex items-center gap-3 bg-gradient-to-l from-zinc-900/80 to-zinc-900/40 hover:from-zinc-850 hover:to-zinc-800 text-zinc-100 p-3 rounded-2xl transition-all duration-300 border border-white/5 shadow-md group"
                 >
-                  <div className="w-8 h-8 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-full bg-blue-500/10 text-blue-400 flex items-center justify-center group-hover:scale-110 transition-transform">
                     <Plus size={20} />
                   </div>
-                  <span className="font-medium">چت جدید</span>
+                  <span className="font-medium text-sm">گفتگوی جدید</span>
                 </button>
 
                 <div className="relative">
-                  <Search size={18} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+                  <Search size={18} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-500" />
                   <input
                     type="text"
                     placeholder="جستجو..."
-                    className="w-full bg-zinc-900 border border-white/5 rounded-full py-2.5 pr-10 pl-4 text-sm text-zinc-200 focus:outline-none focus:border-zinc-700 transition-colors"
+                    className="w-full bg-zinc-900/50 border border-white/5 rounded-full py-2.5 pr-11 pl-4 text-xs text-zinc-200 focus:outline-none focus:border-zinc-700 transition-colors"
                   />
                 </div>
               </div>
@@ -75,10 +75,10 @@ export default function Sidebar({ profile, activeTab, onTabChange, onLogout, isO
               {/* Navigation Tabs */}
               <div className="flex-1 overflow-y-auto px-4 pb-4 flex flex-col gap-6 scrollbar-hide">
                 <div>
-                  <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2 flex items-center gap-2">
-                    <User size={14} /> بخش‌های اپلیکیشن
+                  <h3 className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-3 flex items-center gap-2 px-2">
+                    <User size={13} /> بخش‌های اپلیکیشن
                   </h3>
-                  <div className="flex flex-col gap-1">
+                  <div className="flex flex-col gap-1.5">
                     {TAB_ITEMS.map((tab) => (
                       <button
                         key={tab.key}
@@ -86,10 +86,10 @@ export default function Sidebar({ profile, activeTab, onTabChange, onLogout, isO
                           onTabChange(tab.key);
                           if (window.innerWidth < 768) onToggle();
                         }}
-                        className={`flex items-center gap-3 p-3 rounded-2xl transition-colors text-sm text-right font-medium ${
+                        className={`flex items-center gap-3.5 p-3 rounded-2xl transition-all duration-300 text-sm text-right font-medium border ${
                           activeTab === tab.key 
-                            ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' 
-                            : 'text-zinc-300 hover:bg-zinc-900 hover:text-zinc-100 border border-transparent'
+                            ? 'bg-gradient-to-r from-blue-500/10 to-indigo-500/5 text-blue-400 border-blue-500/20 shadow-[inset_0_0_12px_rgba(99,102,241,0.05)]' 
+                            : 'text-zinc-400 hover:bg-zinc-900/40 hover:text-zinc-100 border-transparent'
                         }`}
                       >
                         <span className={activeTab === tab.key ? 'text-blue-400' : 'text-zinc-500'}>
@@ -103,22 +103,22 @@ export default function Sidebar({ profile, activeTab, onTabChange, onLogout, isO
               </div>
 
               {/* Profile Section (Bottom) */}
-              <div className="p-4 border-t border-white/10">
+              <div className="p-4 border-t border-white/5 bg-[#09090b]/50">
                 <button
                   onClick={() => setShowProfileModal(true)}
-                  className="flex items-center gap-3 w-full p-2 rounded-xl hover:bg-zinc-900 transition-colors text-right"
+                  className="flex items-center gap-3 w-full p-2.5 rounded-2xl hover:bg-zinc-900/50 transition-colors text-right"
                 >
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-lg">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-lg shadow-md">
                     {profile.avatar || 'P'}
                   </div>
                   <div className="flex flex-col items-start flex-1 overflow-hidden">
-                    <span className="text-sm font-medium text-zinc-200 whitespace-nowrap overflow-hidden text-ellipsis w-full">
+                    <span className="text-sm font-semibold text-zinc-200 whitespace-nowrap overflow-hidden text-ellipsis w-full">
                       {profile.displayName}
                     </span>
-                    <span className="text-xs text-zinc-500">کاربر ویژه</span>
+                    <span className="text-xs text-zinc-500">کاربر ویژه مشاور</span>
                   </div>
-                  <div className="px-2 py-1 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-md border border-blue-500/30">
-                    <span className="text-[10px] font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">PRO</span>
+                  <div className="px-2 py-1 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-md border border-blue-500/20">
+                    <span className="text-[10px] font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">PREMIUM</span>
                   </div>
                 </button>
               </div>

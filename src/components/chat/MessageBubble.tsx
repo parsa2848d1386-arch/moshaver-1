@@ -40,7 +40,22 @@ export default function MessageBubble({
   const [voicePlaying, setVoicePlaying] = useState(false);
 
   const isOwn = message.senderId === currentUserId;
-  const isAi = message.senderRole === 'ai';
+  const isAi = message.senderRole === 'ai' || message.senderRole === 'counselor' || message.senderId === 'ai';
+  
+  const isParsa = message.senderRole === 'parsa' || message.senderName === 'پارسا';
+  const isMelika = message.senderRole === 'melika' || message.senderName === 'ملیکا';
+
+  const ownBubbleClass = isParsa
+    ? 'bg-gradient-to-br from-indigo-600 to-blue-500 text-white shadow-lg shadow-indigo-500/10 rounded-3xl rounded-tr-sm border border-indigo-500/10'
+    : isMelika
+      ? 'bg-gradient-to-br from-rose-600 to-pink-500 text-white shadow-lg shadow-rose-500/10 rounded-3xl rounded-tr-sm border border-rose-500/10'
+      : 'bg-zinc-800/80 backdrop-blur-md text-zinc-100 border border-white/5 rounded-3xl rounded-tr-sm';
+
+  const partnerBubbleClass = isParsa
+    ? 'bg-gradient-to-br from-indigo-500/15 to-blue-500/5 text-zinc-100 rounded-3xl rounded-tl-sm border border-indigo-500/15 shadow-[inset_0_0_12px_rgba(99,102,241,0.05)]'
+    : isMelika
+      ? 'bg-gradient-to-br from-rose-600/15 to-pink-500/5 text-zinc-100 rounded-3xl rounded-tl-sm border border-rose-500/15 shadow-[inset_0_0_12px_rgba(236,72,153,0.05)]'
+      : 'bg-zinc-900/60 backdrop-blur-md text-zinc-200 border border-white/5 rounded-3xl rounded-tl-sm';
 
   if (message.isDeleted) {
     return (
@@ -100,7 +115,7 @@ export default function MessageBubble({
       {/* User Message */}
       {isOwn ? (
         <div className="flex flex-col items-start relative max-w-[85%]">
-          <div className="bg-zinc-800/80 backdrop-blur-md px-5 py-3.5 rounded-3xl rounded-tr-sm text-zinc-100 leading-relaxed border border-white/5">
+          <div className={`${ownBubbleClass} px-5 py-3.5 leading-relaxed`}>
             {/* Image display */}
             {message.imageUrl && (
               <div className="mb-3 rounded-2xl overflow-hidden">
@@ -139,12 +154,12 @@ export default function MessageBubble({
         /* AI / Partner Message */
         <div className="flex gap-4 w-full">
           {/* Avatar */}
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-1 ${isAi ? 'bg-blue-500/10 text-blue-400' : 'bg-purple-500/10 text-purple-400'}`}>
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-1 ${isAi ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : isParsa ? 'bg-blue-500/10 text-blue-400' : 'bg-pink-500/10 text-pink-400'}`}>
             {isAi ? <SparkleIcon size={16} /> : message.senderName?.charAt(0)}
           </div>
           
           <div className="flex-1 max-w-[90%]">
-            <div className={`prose prose-invert prose-zinc max-w-none leading-8 prose-p:my-1 prose-headings:my-2 prose-ul:my-1 prose-li:my-0 ${isAi ? 'text-zinc-200' : 'bg-zinc-900/80 backdrop-blur-md px-5 py-3.5 rounded-3xl rounded-tl-sm border border-white/5 text-zinc-100'}`}>
+            <div className={`prose prose-invert prose-zinc max-w-none leading-8 prose-p:my-1 prose-headings:my-2 prose-ul:my-1 prose-li:my-0 ${isAi ? 'bg-zinc-900/30 border border-white/5 backdrop-blur-md px-5 py-3.5 rounded-3xl rounded-tl-sm text-zinc-200' : `${partnerBubbleClass} px-5 py-3.5`}`}>
               {/* Image display */}
               {message.imageUrl && (
                 <div className="mb-3 rounded-2xl overflow-hidden">
