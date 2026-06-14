@@ -132,13 +132,12 @@ export default function MessageList({
   // Empty state
   if (!loading && messages.length === 0) {
     return (
-      <div className="chat-messages">
-        <div className="empty-state">
-          <div className="empty-state-icon">💬</div>
-          <p className="empty-state-text">
-            هنوز پیامی نیست!
-            <br />
-            اولین پیام رو بفرست و گفتگو رو شروع کن 💜
+      <div className="flex-1 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4 bg-zinc-900/50 backdrop-blur-md p-8 rounded-3xl border border-white/5 shadow-2xl">
+          <div className="text-4xl">💭</div>
+          <p className="text-zinc-400 text-sm text-center leading-loose">
+            اولین پیام خود را ارسال کنید و<br />
+            گفتگوی جدیدی را آغاز نمایید.
           </p>
         </div>
       </div>
@@ -146,7 +145,7 @@ export default function MessageList({
   }
 
   return (
-    <div className="chat-messages" ref={containerRef} onScroll={handleScroll}>
+    <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide relative min-h-0" ref={containerRef} onScroll={handleScroll}>
       {/* Pinned messages banner */}
       {pinnedMessages.length > 0 && (
         <div
@@ -290,52 +289,22 @@ export default function MessageList({
         })}
       </div>
 
-      {/* AI typing indicator */}
-      {aiTyping && (
-        <div className="message-wrapper ai" style={{ opacity: 0.9 }}>
-          <span className="message-sender">🤖 مشاور هوشمند</span>
-          <div className="message-bubble" style={{ display: 'flex', gap: 6, padding: '14px 20px' }}>
-            <span className="typing-dot" />
-            <span className="typing-dot" />
-            <span className="typing-dot" />
-          </div>
-        </div>
-      )}
-
       {/* Partner typing indicator */}
       {partnerTyping && (
-        <div className="message-wrapper ai" style={{ opacity: 0.7 }}>
-          <div className="message-bubble" style={{ display: 'flex', gap: 6, padding: '14px 20px', fontSize: 12 }}>
-            در حال تایپ
-            <span className="typing-dot" />
-            <span className="typing-dot" />
-            <span className="typing-dot" />
-          </div>
+        <div className="flex items-center gap-2 text-zinc-500 text-xs mb-4 ml-4 px-4">
+          در حال تایپ...
         </div>
       )}
 
       {/* Scroll to bottom button */}
       {showScrollBtn && (
-        <button className="scroll-to-bottom" onClick={scrollToBottom}>
+        <button 
+          className="fixed bottom-24 right-8 w-10 h-10 bg-blue-500 hover:bg-blue-600 rounded-full flex items-center justify-center text-white shadow-xl transition-transform hover:scale-110 z-50" 
+          onClick={scrollToBottom}
+        >
           ⬇
           {unreadCount > 0 && (
-            <span style={{
-              position: 'absolute',
-              top: -8,
-              right: -8,
-              background: 'var(--danger-color)',
-              color: 'white',
-              fontSize: 11,
-              fontWeight: 'bold',
-              minWidth: 20,
-              height: 20,
-              borderRadius: 10,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '0 4px',
-              animation: 'bounceIn 0.3s ease'
-            }}>
+            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-bold min-w-[20px] h-5 rounded-full flex items-center justify-center px-1 shadow-lg border border-zinc-900">
               {unreadCount}
             </span>
           )}
